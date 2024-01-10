@@ -1,0 +1,14 @@
+---
+title: "01_Time_Series"
+format: html
+editor: visual
+---
+
+## Time Series Lesson 1
+
+# Load required packages
+
+```{r}
+library(fpp2)
+library(gridExtra)
+```
