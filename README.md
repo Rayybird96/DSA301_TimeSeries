@@ -3,9 +3,9 @@ This repository contains my learnings and project for SMU module DSA301 (Time Se
 
 # Documentation of R files
 In this section, there will be qmd files to __facilitate/track my weekly learning__, and R scripts for __application in projects__.
-## R files for learning
+## Learning
 
 
-## R files for project
+## Project
 
 # Project description
