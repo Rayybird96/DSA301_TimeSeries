@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-## Time Series Lesson 1
+## time_series_01
 
 # Load required packages
 
@@ -12,3 +12,89 @@ editor: visual
 library(fpp2)
 library(gridExtra)
 ```
+
+# 1. BoxCox
+
+### 1.1 The BoxCox is used to make variance over time as constant as possible (constant amplitude and wavelength)
+
+```{r}
+autoplot(BoxCox(elec,2))
+autoplot(BoxCox(elec,10))
+autoplot(BoxCox(elec,0.1))
+```
+
+### 1.2 Optimal lambda
+
+```{r}
+autoplot(BoxCox(elec, BoxCox.lambda(elec)))
+BoxCox.lambda(elec)
+```
+
+# 2. Benchmark Forecasting methods
+
+### 2.1 Naive, mean, seasonal naive and drift
+
+```{r}
+# Set training data from 1992 to 2006
+train <- aus_production |>
+  filter_index("1992 Q1" ~ "2006 Q4")
+# Fit the models
+beer_fit <- train |>
+  model(
+    Mean = MEAN(Beer),
+    `Naïve` = NAIVE(Beer),
+    `Seasonal naïve` = SNAIVE(Beer)
+  )
+# Generate forecasts for 14 quarters
+beer_fc <- beer_fit |> forecast(h = 14)
+# Plot forecasts against actual values
+beer_fc |>
+  autoplot(train, level = NULL) +
+  autolayer(
+    filter_index(aus_production, "2007 Q1" ~ .),
+    colour = "black"
+  ) +
+  labs(
+    y = "Megalitres",
+    title = "Forecasts for quarterly beer production"
+  ) +
+  guides(colour = guide_legend(title = "Forecast"))
+
+
+```
+
+# 3. Ljung-Box test - a test that looks at residuals 
+(whether time series data is captured in residuals, et, where et = yhat - y)
+
+```{r}
+autoplot(naive(elec,10))
+```
+
+### 3.1 Check if residuals are correlated
+
+```{r}
+forecast(naive(elec,10))
+checkresiduals(forecast(naive(elec,10)))
+```
+
+### 3.2 There is seasonal data in the residuals, uncaptured by naive methods.
+
+Hence, we can try seasonal naive forecasting to capture this time series data.
+
+```{r}
+forecast(snaive(elec,10))
+checkresiduals(forecast(snaive(elec,10)))
+
+```
+
+### 3.3 Seasonality has been captured in the data.
+
+However, there is positive long term trend in the data (seen in the ACF plot)
+
+### 3.4 Ljung-Box takeaway:
+
+A low p-value means that we reject H0 (there is no autocorrelation among lags), hence we assume that H1 is true (autocorrelation exists), failing the Ljung-Box test. Therefore, there is time series information still not captured in the model (since autocorrelation still exists in the **white noise**, which should instead be captured in the **model**)
+
+Basically, if p value is \>0.05, time series model is good enough. if p value \<0.05, the time series model is still inadequate, there is time series data in the residuals yet to be captured by model
+
+Intuition: h0 = there is no autocorrelation in residuals. we want to accept h0, hence p value must be \>0.05
