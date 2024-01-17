@@ -63,14 +63,15 @@ beer_fc |>
 
 ```
 
-# 3. Ljung-Box test - a test that looks at residuals 
+# 3. Ljung-Box test - a test that looks at residuals
+
 (whether time series data is captured in residuals, et, where et = yhat - y)
 
 ```{r}
 autoplot(naive(elec,10))
 ```
 
-### 3.1 Check if residuals are correlated
+### 3.1 Check if residuals are correlated with lagged values
 
 ```{r}
 forecast(naive(elec,10))
@@ -97,4 +98,4 @@ A low p-value means that we reject H0 (there is no autocorrelation among lags), 
 
 Basically, if p value is \>0.05, time series model is good enough. if p value \<0.05, the time series model is still inadequate, there is time series data in the residuals yet to be captured by model
 
-Intuition: h0 = there is no autocorrelation in residuals. we want to accept h0, hence p value must be \>0.05
+**Intuition: h0 = there is no autocorrelation in residuals. we want to accept h0, hence p value must be \>0.05**
