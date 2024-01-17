@@ -34,6 +34,10 @@ BoxCox.lambda(elec)
 
 ### 2.1 Naive, mean, seasonal naive and drift
 
+Naive methods are **short-term** (eg. predicting the value of today's stock based on latest closing price).
+
+Drift and mean are **long-term.**
+
 ```{r}
 # Set training data from 1992 to 2006
 train <- aus_production |>
@@ -65,22 +69,24 @@ beer_fc |>
 
 # 3. Ljung-Box test - a test that looks at residuals
 
-(whether time series data is captured in residuals, et, where et = yhat - y)
+Tests if time series data is captured in residuals, et, where et = yhat - y.
+
+If time series data is captured in residuals (et), it is not being captured in the model (yhat). Hence, we have to adjust our model to capture the time series data.
 
 ```{r}
 autoplot(naive(elec,10))
 ```
 
-### 3.1 Check if residuals are correlated with lagged values
+### 3.1 Check if residuals are correlated with lagged values of itself
 
 ```{r}
 forecast(naive(elec,10))
 checkresiduals(forecast(naive(elec,10)))
 ```
 
-### 3.2 There is seasonal data in the residuals, uncaptured by naive methods.
+### 3.2 There is seasonal data in the residuals,  not captured by naive methods.
 
-Hence, we can try seasonal naive forecasting to capture this time series data.
+Hence, we can try seasonal naive forecasting to capture this time series data in our model.
 
 ```{r}
 forecast(snaive(elec,10))
@@ -88,9 +94,9 @@ checkresiduals(forecast(snaive(elec,10)))
 
 ```
 
-### 3.3 Seasonality has been captured in the data.
+### 3.3 Seasonality has been captured in the snaive model.
 
-However, there is positive long term trend in the data (seen in the ACF plot)
+However, there is positive long term trend in the data (seen in the ACF plot).
 
 ### 3.4 Ljung-Box takeaway:
 
@@ -98,4 +104,4 @@ A low p-value means that we reject H0 (there is no autocorrelation among lags), 
 
 Basically, if p value is \>0.05, time series model is good enough. if p value \<0.05, the time series model is still inadequate, there is time series data in the residuals yet to be captured by model
 
-**Intuition: h0 = there is no autocorrelation in residuals. we want to accept h0, hence p value must be \>0.05**
+**Intuition: h0 = there is no autocorrelation in residuals. We want to accept h0, hence p value must be \>0.05**
