@@ -1,8 +1,13 @@
 # DSA301 (Time Series Analytics)
-This repository contains my learnings for SMU module DSA301 (Time Series Analytics).
+This repository contains my __learnings and project__ for SMU module DSA301 (Time Series Analytics).
 
-# Description of R files
-These are the R files that help faciliate and track my learning process week by week. Hence, there will be minimal application here and mostly theory/learning of concepts. To see deeper application and analytics in play, please refer to project.
+# Project description
+Problem statement:
 
-# TODO: Add project file when project starts
+# Documentation of R files
+In this section, there will be qmd files to __1. facilitate/track my weekly learning__, and R scripts for __2. applications in projects__.
+## 1. Learning
+
+
+## 2. Project
 
