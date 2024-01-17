@@ -13,9 +13,9 @@ library(fpp2)
 library(gridExtra)
 ```
 
-# 1. BoxCox
+# 1. BoxCox Transformation
 
-### 1.1 The BoxCox is used to make variance over time as constant as possible (constant amplitude and wavelength)
+### 1.1 The BoxCox transformation is used to make variance over time as constant as possible (constant amplitude and wavelength)
 
 ```{r}
 autoplot(BoxCox(elec,2))
