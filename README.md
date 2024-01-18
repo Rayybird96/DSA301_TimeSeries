@@ -7,7 +7,7 @@ Problem statement:
 # Documentation of R files
 In this section, there will be qmd files to __1. facilitate/track my weekly learning__, and R scripts for __2. applications in projects__.
 ## 1. Learning
-
+time_series_learnings.qmd is the main file where my weekly learnings are documented.
 
 ## 2. Project
 
