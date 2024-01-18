@@ -1,10 +1,10 @@
 ---
 title: "time_series_learnings"
 subtitle: DSA301 Time Series Data Analysis
-author: "Rayner Yeoh"
 format: html
 editor: visual
 ---
+
 # Load required packages
 
 ```{r}
@@ -15,7 +15,7 @@ library(fpp3) # updated textbook
 library(gridExtra)
 ```
 
-## time_series_01
+# time_series_01
 
 # 1. BoxCox Transformation
 
@@ -38,9 +38,9 @@ BoxCox.lambda(elec)
 
 ### 2.1 Naive, mean, seasonal naive and drift
 
-Naive methods are **short-term** (eg. predicting the value of today's stock based on latest closing price).
+Naive methods are *short-term* (eg. predicting the value of today's stock based on latest closing price).
 
-Drift and mean are **long-term.**
+Drift and mean are *long-term.*
 
 ```{r}
 # Set training data from 1992 to 2006
@@ -71,11 +71,15 @@ beer_fc |>
 
 ```
 
-# 3. Ljung-Box test - a test that looks at residuals
+# 3. Ljung-Box test
 
-Tests if time series data is captured in residuals, et, where et = yhat - y.
+Tests if time series data is captured in *residuals*, et, where et = yhat - y. If time series data is captured in residuals (et), it is not being captured in the model (yhat). Hence, we have to adjust our model to capture the time series data.
 
-If time series data is captured in residuals (et), it is not being captured in the model (yhat). Hence, we have to adjust our model to capture the time series data.
+As a rule of thumb, residuals should:
+
+1.  be *uncorrelated*. Correlation means there is information left in residuals to be modelled.
+
+2.  have *zero mean*. Non zero mean in residuals means that fitted values are biased.
 
 ```{r}
 autoplot(naive(elec,10))
@@ -110,4 +114,136 @@ Basically, if p value is \>0.05, time series model is good enough. if p value \<
 
 **Intuition: h0 = there is no autocorrelation in residuals. We want to accept h0, hence p value must be \>0.05**
 
-## time_series_02
+# time_series_02
+
+# 4. ACF
+
+Using ACF to infer time series patterns (Is there seasonality? Trend?)
+
+Let's look at Australian monthly electricity production data. There is clear trend and seasonality.
+
+```{r}
+autoplot(elec)
+```
+
+Lets narrow it down to after 1980s, and get the ACF plot.
+
+```{r}
+window(elec, start=1980)
+ggAcf(window(elec, start=1980), lag=48)
+```
+
+## 4.1 How to read ACF plot
+
+The second line represents the autocorrelation between Yt and Yt-1, third line represents autocorrelation between Yt and Yt-2... and so on...
+
+In R, the first line represents autocorrelation of Yt with itself. Naturally, this is 1 (since anything correlated to itself is 1).
+
+## 4.2 What could the ACF plot tell us?
+
+From this acf plot, we are able to infer that the time series has:
+
+**a trend component**: The acf displays a slowly decaying pattern.
+
+Autocorrelations for small lags tend to be large and positive because observations nearby in time are similar in size. Hence, the ACF of trended time series tend to have positive values that slowly decrease as lags increase.
+
+**a seasonal component**: There will be peaks in the acf at the relevant seasonal lags (in this case, since the data is monthly, there are peaks at 12, 24, 36 and 48)
+
+# 5. Stationarity
+
+1.  A stationary time series is one whose moments (1st moment = mean, 2nd moment = variance) do not depend on the time of observation.
+
+2.  A less stringent definition: Covariance stationarity - Only the first 2 moments and autocorrelation function are independent of time t, but may still vary with lag interval k.
+
+## 5.1 Why do we wish to estimate models on stationary data?
+
+A stationary data has **parameters which remain constant**. Hence, model's parameters at time t will be good predictor for values after time t.
+
+1.  Is a ts with trend covariance stationary? No, expected values will increase/decrease over time.
+2.  Is a white noise ts stationary? Yes, a white noise generally has a mean of 0 and constant variance.
+3.  How about a ts with seasonality? No, expected value varies according to month/quarter.
+4.  How about a ts with non annual cycles? No, it also has a conditional expectation that varies over time of year.
+
+Takeaway: Stationary data does not have trend or seasonality.
+
+How to make data stationary? Use differencing!
+
+## 5.2 Differencing
+
+### 5.2.1 First differencing
+
+y' = y~t~ - y~t-1~ which returns a series with T-1 values.
+
+diff() function in R
+
+### 5.2.2 Second differencing
+
+y''~t~ = y'~t~ - y'~t-1~ = (y~t~-y~t-1~)-(y~t-1~-y~t-2~) = y~t~-2y~t-1~+y~t-2~ returns a series with T-2 values
+
+diff(diff()) nested function in R
+
+### 5.2.3 Order of integration
+
+If a non-stationary ts is differenced d times before it becomes stationary, then it is integrated of order d!
+
+### 5.2.4 Seasonal differencing
+
+d~m~yt' = yt - y~t-m,~ where m is number of seasons
+
+aka *lag-m differences* eg. m = 4 for quarterly data
+
+diff(,4) in R
+
+## 5.3 Example using elec data
+
+```{r}
+autoplot(elec)
+```
+
+This is clearly not covariance stationary, lets diff it!
+
+```{r}
+autoplot(diff(elec))
+```
+
+First difference is still not covariance stationary, mean appears to be 0 but variance increases over time.
+
+Let's try seasonal differencing (since elec data is seasonal anyway).
+
+```{r}
+autoplot(diff(elec, 12))
+```
+
+Seasonal diff looks good, variance is more stable. But we could do better...
+
+```{r}
+autoplot(diff(log(elec),12))
+
+```
+
+Indeed, seasonal diff on log transformed elec is better, but is it stationary?
+
+```{r}
+acf((diff(log(elec),12)))
+
+```
+
+Not really stationary... There is a slow drop in acf with lag. For stationarity, ACF would drop to zero relatively quickly.
+
+Lastly, lets try a second seasonal differencing of log(elec)
+
+```{r}
+autoplot(diff((diff(log(elec),12))))
+acf(diff((diff(log(elec),12))))
+
+```
+
+This is stationary! Time series is constant in the first and second moments while ACF demonstrates sharp drop.
+
+Takeaway: if data is seasonal, don't do first differencing. Just do seasonal differencing first.
+
+## 5.4 Pipeline
+
+1.  Check if a variable is stationary.
+2.  If not, apply difference.
+3.  Loop and evaluate differenced variable until it passes 'stationarity'.
