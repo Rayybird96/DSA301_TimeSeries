@@ -1,17 +1,21 @@
 ---
-title: "01_Time_Series"
+title: "time_series_learnings"
+subtitle: DSA301 Time Series Data Analysis
+author: "Rayner Yeoh"
 format: html
 editor: visual
 ---
-
-## time_series_01
-
 # Load required packages
 
 ```{r}
+library(tidyverse)
+library(tsibble)
 library(fpp2)
+library(fpp3) # updated textbook
 library(gridExtra)
 ```
+
+## time_series_01
 
 # 1. BoxCox Transformation
 
@@ -84,7 +88,7 @@ forecast(naive(elec,10))
 checkresiduals(forecast(naive(elec,10)))
 ```
 
-### 3.2 There is seasonal data in the residuals,  not captured by naive methods.
+### 3.2 There is seasonal data in the residuals, not captured by naive methods.
 
 Hence, we can try seasonal naive forecasting to capture this time series data in our model.
 
@@ -105,3 +109,5 @@ A low p-value means that we reject H0 (there is no autocorrelation among lags), 
 Basically, if p value is \>0.05, time series model is good enough. if p value \<0.05, the time series model is still inadequate, there is time series data in the residuals yet to be captured by model
 
 **Intuition: h0 = there is no autocorrelation in residuals. We want to accept h0, hence p value must be \>0.05**
+
+## time_series_02
