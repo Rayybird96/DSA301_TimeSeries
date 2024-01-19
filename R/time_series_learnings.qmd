@@ -256,7 +256,7 @@ Kwiatkowski–Phillips–Schmidt–Shin (KPSS) test:
 
 H0: data is stationary H1: data is non-stationary
 
-We want stationary data, thus we want to accept H0, hence p value \>0.05.
+We want stationary data, thus we want to accept H0, hence p value \>0.05. Or test statistic lies within critical values.
 
 ```{r}
 library(urca)
