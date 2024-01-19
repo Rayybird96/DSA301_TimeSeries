@@ -153,7 +153,7 @@ Autocorrelations for small lags tend to be large and positive because observatio
 
 1.  A stationary time series is one whose moments (1st moment = mean, 2nd moment = variance) do not depend on the time of observation.
 
-2.  A less stringent definition: Covariance stationarity - Only the first 2 moments and autocorrelation function are independent of time t, but may still vary with lag interval k.
+2.  A less stringent definition: *Covariance stationarity* - Only the first 2 moments and autocorrelation function are independent of time t, but may still vary with lag interval k.
 
 ## 5.1 Why do we wish to estimate models on stationary data?
 
@@ -228,9 +228,9 @@ acf((diff(log(elec),12)))
 
 ```
 
-Not really stationary... There is a slow drop in acf with lag. For stationarity, ACF would drop to zero relatively quickly.
+Not really stationary... There is a slow drop in acf with lag (suggestive of a trend). For stationarity, ACF would drop to zero relatively quickly.
 
-Lastly, lets try a second seasonal differencing of log(elec)
+Lastly, lets try differencing the seasonal differenced log(elec) data.
 
 ```{r}
 autoplot(diff((diff(log(elec),12))))
@@ -238,12 +238,64 @@ acf(diff((diff(log(elec),12))))
 
 ```
 
-This is stationary! Time series is constant in the first and second moments while ACF demonstrates sharp drop.
+This is stationary! Time series autoplot is constant in the first and second moments while ACF demonstrates sharp drop.
 
-Takeaway: if data is seasonal, don't do first differencing. Just do seasonal differencing first.
+Takeaway: if data is seasonal, don't do first differencing, just do seasonal differencing first. Also, applying transformations such as logarithms may improve model performance.
 
 ## 5.4 Pipeline
 
 1.  Check if a variable is stationary.
 2.  If not, apply difference.
 3.  Loop and evaluate differenced variable until it passes 'stationarity'.
+
+Note that in reality, we do not difference more than 2 times, as doing so leads to the model losing its economic intuition.
+
+## 5.5 Statistical test for stationarity
+
+Kwiatkowski–Phillips–Schmidt–Shin (KPSS) test:
+
+H0: data is stationary H1: data is non-stationary
+
+We want stationary data, thus we want to accept H0, hence p value \>0.05.
+
+```{r}
+library(urca)
+summary(ur.kpss(elec))
+autoplot(elec)
+```
+
+The critical value at the 5% confidence interval is 0.463. Since the test statistic lies outside the critical value (7.9424\>0.463), this means that we reject the null hypothesis, hence concluding that data is non-stationary.
+
+Let's take a look at second differencing of the seasonal differenced elec data.
+
+```{r}
+summary(ur.kpss(diff(diff((elec), 12))))
+autoplot(diff(diff((elec), 12)))
+```
+
+In this case, test statistic (0.0363) \< critical value at 5% CI (0.463), test statistic lies within critical value, thus we are unable to reject H0. We conclude that data is stationary.
+
+## 5.6 Automatic differencing
+
+The ndiffs() function in R automatically determines order of differencing required for data, running the KPSS unit root test in the back-end.
+
+Use nsdiffs() function for no. of determining *seasonal* differencing.
+
+If data is seasonal, run nsdiffs() first to get the order of seasonal differencing. Then run ndiffs on the seasonal differenced data to get the order of differencing. Let's illustrate this with code.
+
+```{r}
+# we know the elec data set is seasonal, hence we first use nsdiffs
+elec |>
+  nsdiffs()
+
+# we get output of 1, meaning 1 order of seasonal differencing needed. Now we apply ndiffs to the object diff(elec,12) which is 1st order seasonal differenced elec data.
+diff(elec,12)|>
+  ndiffs()
+
+# we get output of 1, meaning 1 order of differencing is needed. Run ndiffs() again for checking purposes.
+diff(diff(elec,12)) |>
+  ndiffs()
+
+# now we get output of 0, as expected :)
+```
+# 6.0 TS decomposition
