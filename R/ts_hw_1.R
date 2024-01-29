@@ -3,7 +3,7 @@ library(fpp2)
 
 #Q1 ===============================================================================
 # Data cleaning 
-nat_gas_df <- read_csv("NG_CONS_SUM_DCU_NUS_M.csv")
+nat_gas_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data//NG_CONS_SUM_DCU_NUS_M.csv")
 nat_gas_df<- nat_gas_df |>
   select(Date, `Volumes Delivered to Consumers`, Residential, Commercial, Industrial,`Vehicle Fuel`, `Electric Power`)|>
   mutate(Date=my(Date))|>
@@ -75,7 +75,7 @@ checkresiduals(as.ts(model_df$`Point Forecast`, deltat=1/12))
 
 
 #Q2 ===============================================================================
-spy_df <- read_csv("SPYmonthly2003.csv")
+spy_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/SPYmonthly2003.csv")
 
 SPY_df <-  read_csv("SPYmonthly2003.csv") |> select(Date, Open) #columns Date and Open selected
 SPY_ts <- ts(SPY_df["Open"],start= c(2004,01), end = c(2024, 01), deltat = 1/12)
@@ -100,7 +100,7 @@ autoplot(diff(SPY_ts)/stats::lag(SPY_ts, k =-1)*100)
 
 # kpss test for stationarity
 ur.kpss(diff(SPY_ts)/stats::lag(SPY_ts, k =-1)*100)
-# since 0.07 lies inside 0.463, we accept H0, hence series is stationary. Percentage change should be used.
+# since 0.07 lies inside 0.463, we accept H0, series is stationary. Percentage change should be used.
 SPY_ts_percent_adjusted <- diff(SPY_ts)/stats::lag(SPY_ts, k =-1)*100
 
 # Get the length of ts object
@@ -164,7 +164,7 @@ checkresiduals(meanf_SPY)
 checkresiduals(meanf_SPY$residuals + snaive_seasonal_SPY$residuals)
 # Small p value meaning that there are still time series info (autocorrelations) in the model
 
-## MSTL decomposition==================================================================='
+## MSTL decomposition===================================================================
 seasadj_SPY <- seasadj(mstl(SPY_train))
 
 seasonal_SPY <- seasonal(mstl(SPY_train))
@@ -206,21 +206,22 @@ meanf_SPY <- meanf(seasadj_SPY)
 
 # Examine residuals of our preferred method 
 checkresiduals(meanf_SPY)
-# Small p value meaning that there are still time series info (autocorrelations) in the model
+# Passes the ljung box test :)
 
 checkresiduals(meanf_SPY$residuals + snaive_seasonal_SPY$residuals)
+# Fails the ljung box test :,)
 
 # Q5=================================================================================
 plastics
 
 autoplot(plastics)
 acf(plastics)
-# there is seasonality - data peaks at associated lags suggestive of seasonality
+# There is seasonality - data peaks at associated lags suggestive of seasonality
 # and trend - slowly decaying lags
 
 decompose(plastics, type = c("multiplicative")) |>
   autoplot()
-# yes, the results support interpretations from a. Trend is upward sloping and
+# Yes, the results support interpretations from a. Trend is upward sloping and
 # there is seasonality.
 
 seasonally_adjusted <- seasadj(decompose(plastics, type = c("multiplicative"))) 
@@ -237,7 +238,7 @@ seasonally_adjusted2 |>
 
 rm(plastics)
 
-# adding 500 to data in the middle to act as outlier
+# Adding 500 to data in the middle to act as outlier
 plastics[30] <- plastics[30]+500
 seasonally_adjusted3 <- seasadj(decompose(plastics, type = c("multiplicative")))
 seasonally_adjusted3 |> 
@@ -265,7 +266,7 @@ naive(seasonal_brick_ts)
 stlf(bricksq)|>
   autoplot()
 checkresiduals(stlf(bricksq))
-# residuals are correlated
+# Residuals are correlated
 
 stlf(bricksq, robust=TRUE)
 checkresiduals((stlf(bricksq, robust=TRUE)))
