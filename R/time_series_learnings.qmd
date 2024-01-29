@@ -5,6 +5,10 @@ format: html
 editor: visual
 ---
 
+# time_series_01
+
+This file documents my learning process with SMU module DSA301 Time Series Data Analytics.
+
 # Load required packages
 
 ```{r}
@@ -14,8 +18,6 @@ library(fpp2)
 library(fpp3) # updated textbook
 library(gridExtra)
 ```
-
-# time_series_01
 
 # 1. BoxCox Transformation
 
@@ -113,8 +115,6 @@ A low p-value means that we reject H0 (there is no autocorrelation among lags), 
 Basically, if p value is \>0.05, time series model is good enough. if p value \<0.05, the time series model is still inadequate, there is time series data in the residuals yet to be captured by model
 
 **Intuition: h0 = there is no autocorrelation in residuals. We want to accept h0, hence p value must be \>0.05**
-
-# time_series_02
 
 # 4. ACF
 
@@ -250,13 +250,13 @@ Takeaway: if data is seasonal, don't do first differencing, just do seasonal dif
 
 Note that in reality, we do not difference more than 2 times, as doing so leads to the model losing its economic intuition.
 
-## 5.5 Statistical test for stationarity
+## 5.5 KPSS test for stationarity
 
 Kwiatkowski–Phillips–Schmidt–Shin (KPSS) test:
 
 H0: data is stationary H1: data is non-stationary
 
-We want stationary data, thus we want to accept H0, hence p value \>0.05. Or test statistic lies within critical values.
+We want stationary data, thus we want to accept H0, hence p value \>0.05. (Or test statistic lies within critical values.)
 
 ```{r}
 library(urca)
@@ -281,7 +281,7 @@ The ndiffs() function in R automatically determines order of differencing requir
 
 Use nsdiffs() function for no. of determining *seasonal* differencing.
 
-If data is seasonal, run nsdiffs() first to get the order of seasonal differencing. Then run ndiffs on the seasonal differenced data to get the order of differencing. Let's illustrate this with code.
+If data is seasonal, run nsdiffs() first to get the order of seasonal differencing. Then run ndiffs() on the seasonal differenced data to get the order of differencing. Let's illustrate this with code.
 
 ```{r}
 # we know the elec data set is seasonal, hence we first use nsdiffs
@@ -291,6 +291,10 @@ elec |>
 # we get output of 1, meaning 1 order of seasonal differencing needed. Now we apply ndiffs to the object diff(elec,12) which is 1st order seasonal differenced elec data.
 diff(elec,12)|>
   ndiffs()
+# or
+elec|>
+  diff(12) |>
+  ndiffs()
 
 # we get output of 1, meaning 1 order of differencing is needed. Run ndiffs() again for checking purposes.
 diff(diff(elec,12)) |>
@@ -298,4 +302,143 @@ diff(diff(elec,12)) |>
 
 # now we get output of 0, as expected :)
 ```
+
 # 6.0 TS decomposition
+
+Time series contains patterns of 1. Trend 2. Season 3. Cycles.
+
+We could either:
+
+1\. Model entire time series or
+
+2\. Split time series to individual components (E,T,S), then merge individual models back together. This allows us to get a better matching of parameters to the underlying time series
+
+## 6.1 Code examples
+
+```{r}
+# Additive decomposition
+decompose(elec) |>
+  autoplot()
+```
+
+Data = TrendCycle + Seasonal + Remainder. We usually use additive decomposition when variation of the data does not change over time
+
+```{r}
+# Multiplicative decomposition
+decompose(elec, type="multiplicative")|>
+  autoplot()
+```
+
+Data = TrendCycle \* Seasonal \* Remainder. We usually use multiplicative decomposition when the range of the data depends on its level, and that level might be increasing over time.
+
+## 6.2 Decomposition Procedure
+
+1.  Estimate trend-cycle component using MA smoothing (to remove seasonalities).
+
+2.  Remove this component from the series.
+
+3.  Take the output of step 2 and estimate the seasonal component by taking the average of the detrended values for each season. (eg. for 30 year monthly data, find the average value of January from 30 values of 30 years of January, repeat for Feb... and so on).
+
+4.  Adjusted to ensure that they sum to zero (m) for the additive (multiplicative) case.
+
+5.  String together monthly values and replicating the same sequence (copy-paste) for each year.
+
+6.  Remainder component is the "irregular" part of the series. Additive = data - trend - seasonality, Multiplicative = data/(trend\*seasonality).
+
+## 6.3 Moving Averages
+
+Step 1 - Using MA to get trend-cycle component
+
+```{r}
+elec |>
+  autoplot()
+
+# 3 month moving average
+elec |>
+  ma(3) |>
+  autoplot()
+
+# 12 month moving average
+autoplot(ma(elec,12))
+
+# This gives us the long-term trend component, which we will remove from raw data such that we get detrended data. 
+```
+
+Step 2 - Remove this component (trend) from series
+
+```{r}
+# elec - ma(elec,12) additive decomposition
+# elec / ma(elec,12) multiplicative decomposition
+
+# additive detrended data series
+autoplot(elec-ma(elec,12)) +
+  ggtitle("Additive decomposition")
+  
+
+# multiplicative detrended data series
+(elec/ma(elec, 12))|>
+  autoplot() +
+  ggtitle("Multiplicative decomposition")
+```
+
+Step 3 - Taking the average of seasonal components of each month and estimating seasonal component
+
+```{r}
+detrended_series <- elec-ma(elec,12)
+
+cycle(detrended_series)
+
+# get the monthly mean values over the many years of data (eg. average of Jan values using 39 years of Jan values, then Feb, and so on...)
+tapply(detrended_series, cycle(detrended_series), mean, na.rm=TRUE)
+
+plot(tapply(detrended_series, cycle(detrended_series), mean, na.rm=TRUE))
+```
+
+Step 4 - Shift seasonal component estimation so they sum to 0
+
+```{r}
+# sum of seasonal components (adding up all 12 means of each month)
+sum(tapply(detrended_series, cycle(detrended_series), mean, na.rm=TRUE))
+
+# since the sum of seasonal components is -16.1031, we should shift each point (upwards) by
++16.1031/12. 
+
+# This is the same as the average value of the mean of each month and so is represented by the code below:
+mean(tapply(detrended_series, cycle(detrended_series), mean, na.rm=TRUE))
+
+# and so we have to shift upwards by this amount
+```
+
+Step 5 - String together monthly values (copy paste)
+
+```{r}
+# Therefore taking mean of each month of detrended series minus average sum of mean monthly data will allow us to get a seasonal component shifted to 0 
+
+#Jan mean + 1.341, Feb mean + 1.341, March mean + 1.341, and so on...
+seasonal_component <- (tapply(detrended_series, cycle(detrended_series), mean, na.rm=TRUE)) - mean(tapply(detrended_series, cycle(detrended_series), mean, na.rm=TRUE))
+
+# This is how we manually create one seasonal cycle from the ETS decomposition plot
+plot(seasonal_component, type="l")
+```
+
+Step 6 - Remainder is just raw data - trendcycle - seasonal \[additive\]
+
+```{r}
+autoplot(decompose(elec))
+```
+
+## 7.0 Preprosessing workflow
+
+Workflow:
+1. Remove deterministic variation (monthdays, inflation, etc.)
+
+2. ts decomposition -> returns 2 things 
+a. seasonality adjusted (trend + noise)
+b. seasonal (run naive methods)
+
+"usually" run box-cox on 2a
+Model A: then run nsdiffs and ndiffs, then start to model BoxCox(2a) (Build Arima etc on this)
+
+Model B: seasonal component -> snaive, or can try Arima etc
+
+Final step: (assume TS additive decomp): Take Model A + Model B = final forecast
