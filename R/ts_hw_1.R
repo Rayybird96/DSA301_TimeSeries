@@ -26,41 +26,60 @@ decompose(nat_gas_ts)|>
   autoplot()
 
 # get trend component
-t <- trendcycle(decompose(nat_gas_ts))
+nat_gas_trend <- trendcycle(decompose(nat_gas_ts))
 
-t|> 
+nat_gas_trend|> 
   autoplot()
 
 # how many order of differencing needed?
-nsdiffs(t) #0
+nsdiffs(nat_gas_trend) #0
 
-ndiffs(t) #1
+ndiffs(nat_gas_trend) #1
 
-# 1 order diff of t
-t_diff <- diff(t)
-t_diff|>
+# 1 order diff of trendcycle
+nat_gas_trend <- diff(nat_gas_trend)
+nat_gas_trend|>
   autoplot()
 
-# autoplot(t_diff)
-# autoplot(t_diff) + autolayer(meanf(t_diff, h = 11))
-# autoplot(t_diff) + autolayer(naive(t_diff, h = 11))
-# autoplot(t_diff) + autolayer(snaive(t_diff, h = 11)) 
+# kpss test to see if data is now stationary
+summary(ur.kpss(nat_gas_trend))
+# Since test stat 0.18<critical value at 5% 0.463, we accept H0, data is stationary
 
 # Seasonal component
-s <- seasonal(decompose(nat_gas_ts))
+nat_gas_season <- seasonal(decompose(nat_gas_ts))
 
 # Take a look
-autoplot(s)
-
-# Ljung box test
-checkresiduals(snaive(s))
+autoplot(nat_gas_season)
 
 # snaive model on s
-s_model <- snaive(s, h=12)
+nat_gas_season_model <- snaive(nat_gas_season)
 
-# naive model on t
-t_model <- naive(t_diff, h = 12)
+# Benchmark models on nat_gas_trend
+naive(nat_gas_trend)
+snaive(nat_gas_trend)
+rwf(nat_gas_trend, drift=TRUE)
+meanf(nat_gas_trend)
 
+# define fxn for goodness-of-fit analysis on the different models
+benchmark_model_results <- function(benchmark_model){
+  model_forecast <- forecast(benchmark_model)
+  accuracy(model_forecast)
+}
+
+# seasonal snaive model
+benchmark_model_results(nat_gas_season_model)
+
+# trend models
+benchmark_model_results(naive(nat_gas_trend))
+benchmark_model_results(snaive(nat_gas_trend))
+benchmark_model_results(rwf(nat_gas_trend, drift=TRUE))
+benchmark_model_results(meanf(nat_gas_trend))
+# rwf has lowest RMSE and MAPE, and hence is the optimal model for trendcycle
+nat_gas_trend_model <- rwf(nat_gas_trend, drift=TRUE)
+  
+checkresiduals(nat_gas_trend_model$residuals+nat_gas_season_model$residuals)
+
+accuracy(forecast(nat_gas_trend_model)+forecast(nat_gas_season_model, h=10))
 print(s_model)
 print(t_model)
 
@@ -195,7 +214,8 @@ checkresiduals(meanf_SPY)
 # fails the ljung box test
 
 checkresiduals(meanf_SPY$residuals + snaive_seasonal_SPY$residuals)
-# fails the ljung box test.. time to give up :,)\
+# fails the ljung box test.. time to give up :,)
+# with tiny improvements over classical decomposition
 
 
 # Q3 =================================================================================
