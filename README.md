@@ -2,12 +2,12 @@
 This repository contains my __learnings and project__ for SMU module DSA301 (Time Series Analytics).
 
 # Project description
-Problem statement:
 
-# Documentation of R files
-In this section, there will be qmd files to __1. facilitate/track my weekly learning__, and R scripts for __2. applications in projects__.
-## 1. Learning
-time_series_learnings.qmd is the main file where my weekly learnings are documented.
 
-## 2. Project
+# R
+time_series_learnings_qmd is a qmd file documenting my weekly learnings in the mod.
+
+ts_hw.R are my homework R scripts.
+
+
 
