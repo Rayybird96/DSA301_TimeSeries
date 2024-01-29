@@ -192,10 +192,11 @@ meanf_SPY <- meanf(seasadj_SPY)
 
 # Examine residuals of our preferred method 
 checkresiduals(meanf_SPY)
-# Barely passes the ljung box test (p value of 0.005195)
+# fails the ljung box test
 
 checkresiduals(meanf_SPY$residuals + snaive_seasonal_SPY$residuals)
-# Barely passes the ljung box test (p value of 0.005233) but a pass is a pass amirite :D
+# fails the ljung box test.. time to give up :,)\
+
 
 # Q3 =================================================================================
 plastics
