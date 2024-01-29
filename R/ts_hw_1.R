@@ -1,9 +1,10 @@
 library(tidyverse)
 library(fpp2)
+library(urca)
 
 #Q1 ===============================================================================
 # Data cleaning 
-nat_gas_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data//NG_CONS_SUM_DCU_NUS_M.csv")
+nat_gas_df <- read_csv("Data/NG_CONS_SUM_DCU_NUS_M.csv")
 nat_gas_df<- nat_gas_df |>
   select(Date, `Volumes Delivered to Consumers`, Residential, Commercial, Industrial,`Vehicle Fuel`, `Electric Power`)|>
   mutate(Date=my(Date))|>
@@ -75,9 +76,9 @@ checkresiduals(as.ts(model_df$`Point Forecast`, deltat=1/12))
 
 
 #Q2 ===============================================================================
-spy_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/SPYmonthly2003.csv")
+SPY_df <- read_csv("Data/SPYmonthly2003.csv")
 
-SPY_df <-  read_csv("SPYmonthly2003.csv") |> select(Date, Open) #columns Date and Open selected
+SPY_df <-  SPY_df |> select(Date, Open) #columns Date and Open selected
 SPY_ts <- ts(SPY_df["Open"],start= c(2004,01), end = c(2024, 01), deltat = 1/12)
 
 acf(SPY_ts)
@@ -125,17 +126,13 @@ seasonal_SPY <- seasonal(decompose(SPY_train))
 # How many diffs are needed?
 nsdiffs(seasadj_SPY)
 ndiffs(seasadj_SPY)
-nsdiffs(seasonal_SPY)
 # seasadj: 0 for both nsdiffs and diffs, reaffirms our point that percent change data is stationary
-# seasonal: 1 order seasonal differencing needed
-
-seasonal_SPY <- diff(seasonal_SPY, 12)
 
 # Define a fxn that runs benchmark models on seasadj data and gets accuracy score
 # based on test score
 get_test_results <- function(benchmark_model){
   model_forecast <- forecast(benchmark_model)
-  accuracy(model_forecast, test)
+  accuracy(model_forecast, SPY_test)
 }
 
 # Seasonal
@@ -172,18 +169,7 @@ seasonal_SPY <- seasonal(mstl(SPY_train))
 # How many diffs are needed?
 nsdiffs(seasadj_SPY)
 ndiffs(seasadj_SPY)
-nsdiffs(seasonal_SPY)
 # seasadj: 0 for both nsdiffs and diffs, reaffirms our point that percent change data is stationary
-# seasonal: 1 order seasonal differencing needed
-
-seasonal_SPY <- diff(seasonal_SPY, 12)
-
-# Define a fxn that runs benchmark models on seasadj data and gets accuracy score
-# based on test score
-get_test_results <- function(benchmark_model){
-  model_forecast <- forecast(benchmark_model)
-  accuracy(model_forecast, test)
-}
 
 # Seasonal
 snaive_seasonal_SPY <- snaive(seasonal_SPY, h=length(SPY_test))
@@ -206,12 +192,12 @@ meanf_SPY <- meanf(seasadj_SPY)
 
 # Examine residuals of our preferred method 
 checkresiduals(meanf_SPY)
-# Passes the ljung box test :)
+# Barely passes the ljung box test (p value of 0.005195)
 
 checkresiduals(meanf_SPY$residuals + snaive_seasonal_SPY$residuals)
-# Fails the ljung box test :,)
+# Barely passes the ljung box test (p value of 0.005233) but a pass is a pass amirite :D
 
-# Q5=================================================================================
+# Q3 =================================================================================
 plastics
 
 autoplot(plastics)
@@ -248,7 +234,7 @@ rm(plastics)
 
 # imo, there is no diff to outlier be it last few or middle observation.
 
-# Q6 ==============================================================================
+# Q4 ==============================================================================
 autoplot(bricksq)
 
 decompose(bricksq)|>
