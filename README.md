@@ -2,7 +2,6 @@
 This repository contains my __homework and project__ for SMU module DSA301 (Time Series Analytics).
 
 # Project
-## Project description
 *Climate change, Human-caused or not?*
 
 Long-term climate change research has been modelled as an interaction between the following 3 variables: 
