@@ -4,7 +4,7 @@ This repository contains my __homework and project__ for SMU module DSA301 (Time
 # Project description
 *Climate change, Human-caused or not?*
 
-Long term climate change has been modelled as an interaction between the following 3 variables: 
+Long-term climate change research has been modelled as an interaction between the following 3 variables: 
 1. greenhouse gas emissions
 2. global average temperatures
 3. Sea levels
