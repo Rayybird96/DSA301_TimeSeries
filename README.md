@@ -11,6 +11,7 @@ Long-term climate change research has been modelled as an interaction between th
    
 Other indicators (either causal factors or outcomes) have been proposed, such as deforestation, droughts & species extinction. In our project, we explore the effects of anthropogenic activities on climate change, determine if there are robust relationships between potential explanatory variables using explanatory time series models (eg. VAR, ARIMA-X, ARMA-X), and consider/test alternative explanations.
 
+## Methodology
 # R
 ts_hw.R are my homework R scripts.
 
