@@ -4,7 +4,7 @@ library(urca)
 
 #Q1 ===============================================================================
 # Data cleaning 
-nat_gas_df <- read_csv("Data/HW_Data/NG_CONS_SUM_DCU_NUS_M.csv")
+nat_gas_df <- read_csv("Data/NG_CONS_SUM_DCU_NUS_M.csv")
 nat_gas_df<- nat_gas_df |>
   select(Date, `Volumes Delivered to Consumers`, Residential, Commercial, Industrial,`Vehicle Fuel`, `Electric Power`)|>
   mutate(Date=my(Date))|>
