@@ -267,11 +267,13 @@ stlf(bricksq)|>
 checkresiduals(stlf(bricksq))
 # Residuals are correlated
 
+# Robust stlf
 stlf(bricksq, robust=TRUE)
 checkresiduals((stlf(bricksq, robust=TRUE)))
 # p value improved a lot (way higher) but still <0.05 hence residuals are still
 # correlated
 
+# Set test window as last 2 years and training window as preceding period
 train <- window(bricksq, end=c(1992,4))
 
 test <- window(bricksq, start=c(1993,1), end=c(1994,4))
@@ -279,8 +281,9 @@ test <- window(bricksq, start=c(1993,1), end=c(1994,4))
 snaive_forecast <- forecast(snaive(train), h=7)
 stlf_forecast <- forecast(stlf(train),h=7)
 
+# Comparing test scores
 accuracy(snaive_forecast, test)
 accuracy(stlf_forecast, test)
 
-
+# stlf has lower out of sample test MAPE and RMSE, hence it performs better than snaive.
 
