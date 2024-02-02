@@ -433,9 +433,8 @@ Workflow: 1. Remove deterministic variation (monthdays, inflation, etc.)
 
 2.  ts decomposition -\> returns 2 things
 
-```{=html}
 <!-- -->
-```
+
 a.  seasonality adjusted (trend + noise)
 b.  seasonal (run naive methods)
 
@@ -444,3 +443,5 @@ b.  seasonal (run naive methods)
 Model B: seasonal component -\> snaive, or can try Arima etc
 
 Final step: (assume TS additive decomp): Take Model A + Model B = final forecast
+
+

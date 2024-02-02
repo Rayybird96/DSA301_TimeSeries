@@ -4,7 +4,7 @@ library(urca)
 
 #Q1 ===============================================================================
 # Data cleaning 
-nat_gas_df <- read_csv("Data/NG_CONS_SUM_DCU_NUS_M.csv")
+nat_gas_df <- read_csv("Data/HW_Data/NG_CONS_SUM_DCU_NUS_M.csv")
 nat_gas_df<- nat_gas_df |>
   select(Date, `Volumes Delivered to Consumers`, Residential, Commercial, Industrial,`Vehicle Fuel`, `Electric Power`)|>
   mutate(Date=my(Date))|>
@@ -25,13 +25,13 @@ autoplot(nat_gas_ts)
 decompose(nat_gas_ts)|>
   autoplot()
 
-# get trend component
+# Get trend component
 nat_gas_trend <- trendcycle(decompose(nat_gas_ts))
 
 nat_gas_trend|> 
   autoplot()
 
-# how many order of differencing needed?
+# How many order of differencing needed?
 nsdiffs(nat_gas_trend) #0
 
 ndiffs(nat_gas_trend) #1
@@ -52,7 +52,7 @@ nat_gas_season <- seasonal(decompose(nat_gas_ts))
 autoplot(nat_gas_season)
 
 # snaive model on s
-nat_gas_season_model <- snaive(nat_gas_season)
+nat_gas_season_model <- snaive(nat_gas_season, h=10)
 
 # Benchmark models on nat_gas_trend
 naive(nat_gas_trend)
@@ -60,13 +60,13 @@ snaive(nat_gas_trend)
 rwf(nat_gas_trend, drift=TRUE)
 meanf(nat_gas_trend)
 
-# define fxn for goodness-of-fit analysis on the different models
+# Define fxn for goodness-of-fit analysis on the different models
 benchmark_model_results <- function(benchmark_model){
   model_forecast <- forecast(benchmark_model)
   accuracy(model_forecast)
 }
 
-# seasonal snaive model
+# Seasonal snaive model
 benchmark_model_results(nat_gas_season_model)
 
 # trend models
@@ -78,27 +78,20 @@ benchmark_model_results(meanf(nat_gas_trend))
 nat_gas_trend_model <- rwf(nat_gas_trend, drift=TRUE)
   
 checkresiduals(nat_gas_trend_model$residuals+nat_gas_season_model$residuals)
-
-accuracy(forecast(nat_gas_trend_model)+forecast(nat_gas_season_model, h=10))
-print(s_model)
-print(t_model)
-
-model_df <- (print(s_model)+print(t_model))
-model_df$`Point Forecast`
-
-# converting to ts
-as.ts(model_df$`Point Forecast`, deltat=1/12)
-accuracy(as.ts(model_df$`Point Forecast`, deltat=1/12))
-checkresiduals(as.ts(model_df$`Point Forecast`, deltat=1/12))
-
-# p-value of 0.1019>0.05, we accept H0 that there's no autocorrelation
+# p value <0.05 so we reject H0, there is still time series info aka autocorrelation 
+# in the model.
 
 
 #Q2 ===============================================================================
 SPY_df <- read_csv("Data/SPYmonthly2003.csv")
 
-SPY_df <-  SPY_df |> select(Date, Open) #columns Date and Open selected
-SPY_ts <- ts(SPY_df["Open"],start= c(2004,01), end = c(2024, 01), deltat = 1/12)
+SPY_df <-  SPY_df |> 
+  select(Date, Open) #columns Date and Open selected
+
+SPY_ts <- ts(SPY_df["Open"],
+             start= c(2004,01),
+             end = c(2024, 01),
+             deltat = 1/12)
 
 acf(SPY_ts)
 ggseasonplot(SPY_ts)
@@ -120,14 +113,13 @@ autoplot(diff(SPY_ts)/stats::lag(SPY_ts, k =-1)*100)
 
 # kpss test for stationarity
 ur.kpss(diff(SPY_ts)/stats::lag(SPY_ts, k =-1)*100)
-# since 0.07 lies inside 0.463, we accept H0, series is stationary. Percentage change should be used.
+# Since 0.07 lies inside 0.463, we accept H0, series is stationary. Percentage change should be used.
 SPY_ts_percent_adjusted <- diff(SPY_ts)/stats::lag(SPY_ts, k =-1)*100
 
 # Get the length of ts object
 length(SPY_ts_percent_adjusted)
 
 # Splitting train test set. Split the data into 80% training set, and 20% test set. 
-# About 4 years as test set and 16 years as training set.
 
 SPY_train <- window(SPY_ts_percent_adjusted, start = c(2004,1), end = c(2019,12))
 
