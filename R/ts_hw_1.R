@@ -278,7 +278,8 @@ train <- window(bricksq, end=c(1992,4))
 
 test <- window(bricksq, start=c(1993,1), end=c(1994,4))
 
-# Forecasting onto the test set (last 2 years or equivalent to 7 quarters)
+# Forecasting onto the test set (last 2 years or equivalent to 7 quarters as 1994 Q4
+# data is not present)
 snaive_forecast <- forecast(snaive(train), h=7)
 stlf_forecast <- forecast(stlf(train),h=7)
 
