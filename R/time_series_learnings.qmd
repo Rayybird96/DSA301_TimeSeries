@@ -303,7 +303,7 @@ diff(diff(elec,12)) |>
 # now we get output of 0, as expected :)
 ```
 
-# 6.0 TS decomposition
+# 6 TS decomposition
 
 Time series contains patterns of 1. Trend 2. Season 3. Cycles.
 
@@ -427,16 +427,15 @@ Step 6 - Remainder is just raw data - trendcycle - seasonal \[additive\]
 autoplot(decompose(elec))
 ```
 
-## 7.0 Preprosessing workflow
+# 7 Preprosessing workflow
 
 Workflow: 1. Remove deterministic variation (monthdays, inflation, etc.)
 
 2.  ts decomposition -\> returns 2 things
 
-<!-- -->
+    a\. seasonality adjusted (trend + noise)
 
-a.  seasonality adjusted (trend + noise)
-b.  seasonal (run naive methods)
+    b\. seasonal (run naive methods)
 
 "usually" run box-cox on 2a Model A: then run nsdiffs and ndiffs, then start to model BoxCox(2a) (Build Arima etc on this)
 
@@ -444,4 +443,63 @@ Model B: seasonal component -\> snaive, or can try Arima etc
 
 Final step: (assume TS additive decomp): Take Model A + Model B = final forecast
 
+# 8 ARIMA
 
+AR: Auto regression -\> regression of the variable against past values of itself
+
+I: Differencing -\> make series stationary before AR or MA steps
+
+MA: Moving average -\> involves taking the moving average of the (first or more differenced) variable within a sliding window
+
+## 8.1 White noise (ut) is a basic building block!
+
+Properties of white noise:
+
+1.  Identically distributed, stationary process
+2.  E(u~t~)=0 -\> centred around zero
+3.  V(u~t~) = sigma\^squared~u~ -\> constant variance
+4.  C(u~t~, u~t+k~) = 0 for any k =/= 0 -\> not correlated to different time periods i.e. no autocorrelation
+
+## 8.2 ARMA properties
+
+### 8.2.1 AR properties
+
+AR(1) process: 
+
+Y~t~= c + λY~t − 1~ + u~t~
+
+Important formula for AR(1) process:
+
+Corr(Y~t~ , Y ~t+/-k~ ) = λ^\|k\|^ ,where λ represents AR coefficient, k represents no. of lags
+
+Therefore, the ACF for an AR(1) process will decrease slowly but exponentially, as per the formula above.
+
+The PACF for an AR(1) process will show a sharp drop after 1 lag. Likewise, the PACF of an AR(k) process will show a sharp drop after k lags (at the k+1 lag).
+
+### 8.2.2 MA properties
+
+MA(1) process:
+
+Y~t~ = c + u~t~ + θ~1~u~t − 1~
+
+In contrast to an AR(1) model, ACF for MA(1) cuts off after lag 1, indicating it captures very short term dynamics.
+
+### 8.2.3 ARMA Coefficients
+
+Stationarity depends solely on AR coefficients as MA processes are always stationary.
+
+AR coefficients -\> determines stationarity, λ has to be within (0,1) for the series mean to be finite
+
+MA coefficients -\> determines invertability
+
+### 8.2.4 ARMA ACF & PACF
+
+For an ARMA process, the ACF and the PACF should both tail off exponentially:
+
+AR component -\> ACF decays exponentially
+
+MA component -\> PACF decays exponentially
+
+An MA(1) process is invertible to a AR(infinity) process, and an AR(infinity) process will have a PACF that is infinite in extent. (Recall that the PACF of an AR(k) process will show a sharp drop after k lags. Hence, when k is infinite, the PACF is infinite).
+
+## 8.3 ARIMA models
