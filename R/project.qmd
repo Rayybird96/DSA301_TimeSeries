@@ -1,0 +1,54 @@
+---
+title: "project"
+format: html
+editor: visual
+---
+Loading the required libraries
+```{r}
+library(tidyverse)
+library(fpp2)
+library(urca)
+```
+
+```{r}
+temp_change_df<- read_csv("data/annual_temp_change.csv")
+head(temp_change_df)
+tail(temp_change_df)
+```
+At first glance, we see that there are 2 methods of temperature recording (GCAG and CISTEMP). We shall evaluate both temp series time series data seperately.
+
+```{r}
+temp_change_GCAG <- temp_change_df |>
+  filter(Source=="GCAG")|>
+  arrange(Year)
+```
+
+```{r}
+# Convert to ts object
+temp_change_GCAG <- ts(temp_change_GCAG["Mean"],
+                 start=c(1882), 
+                 end=c(2016))
+
+autoplot(temp_change_GCAG)
+```
+
+```{r}
+temp_change_GISTEMP <- temp_change_df |>
+  filter(Source=="GISTEMP")|>
+  arrange(Year)
+
+# Convert to ts object
+temp_change_GISTEMP <- ts(temp_change_GISTEMP["Mean"],
+                 start=c(1882), 
+                 end=c(2016))
+
+autoplot(temp_change_GISTEMP)
+```
+Both have consistent results. Do we stick to one or both?
+There is clear trend. Seasonality might need to decompose. thank you.
+
+
+```{r}
+
+
+```

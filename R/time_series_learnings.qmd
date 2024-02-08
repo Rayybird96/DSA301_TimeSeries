@@ -500,6 +500,40 @@ AR component -\> ACF decays exponentially
 
 MA component -\> PACF decays exponentially
 
-An MA(1) process is invertible to a AR(infinity) process, and an AR(infinity) process will have a PACF that is infinite in extent. (Recall that the PACF of an AR(k) process will show a sharp drop after k lags. Hence, when k is infinite, the PACF is infinite).
+An MA(1) process is invertible to a AR(infinity) process, and an AR(infinity) process will have a PACF that is infinite in extent, and decaying exponentially.
+
+One last note, if ACF decays slowly instead of exponentially, then it means that series is not stationary and differencing is necessary.
 
 ## 8.3 ARIMA models
+
+in class practice 5
+
+library(astsa) library(fpp2) model1 = sarima.sim(d = 0, D = 0, ar = c(0.75), sar=c(0), S = 12)
+
+model2 = sarima.sim(d = 1, D = 1, ar = c(0.4,0.3), sar=c(0.2,0.1), ma=c(0.5,0.4), sma=c(0.3,0.7), S = 12)
+
+auto.arima(model1)
+
+auto.arima(model2)
+
+auto.arima(sarima.sim(d = 1, D = 1, ar = c(0.4,0.3), sar=c(0.2,0.1), ma=c(0.5,0.4), sma=c(0.3,0.7), S = 12))
+
+mcopper
+
+stlf(mcopper, method="arima", lambda="auto")
+
+autoplot(forecast(stlf(mcopper, method="arima", lambda="auto")))
+
+autoplot(forecast(auto.arima(mcopper, lambda="auto")))
+
+mcopper \|\> autoplot()
+
+autoplot(mstl(mcopper))
+
+seasadj(mstl(mcopper)) \|\> autoplot()
+
+tsdisplay(seasadj(mstl(mcopper))) \# ACF decays slowly meaning diff is needed data is not stationary yet
+
+s \<- seasadj(mstl(mcopper)) tsdisplay(diff(s))
+
+# d is 1, MA can be 1 to 5, AR is 1
