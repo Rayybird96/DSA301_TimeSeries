@@ -3,19 +3,26 @@ title: "project"
 format: html
 editor: visual
 ---
+
 Loading the required libraries
+
 ```{r}
 library(tidyverse)
 library(fpp2)
 library(urca)
 ```
 
+# Part 1 - Investigating global temperatures over time
+
+First, we load in temperature change data. Our goal here is to investigate if temperature change pre 1910s and post 1910s has seen a significant difference. If yes, it suggests that anthropogenic activities have led to climate change.
+
 ```{r}
-temp_change_df<- read_csv("data/annual_temp_change.csv")
+temp_change_df<- read_csv("Data/annual_temp_change.csv")
 head(temp_change_df)
 tail(temp_change_df)
 ```
-At first glance, we see that there are 2 methods of temperature recording (GCAG and CISTEMP). We shall evaluate both temp series time series data seperately.
+
+At first glance, we see that there are 2 methods of temperature recording (GCAG and CISTEMP). We shall evaluate both temp series time series data separately.
 
 ```{r}
 temp_change_GCAG <- temp_change_df |>
@@ -44,9 +51,8 @@ temp_change_GISTEMP <- ts(temp_change_GISTEMP["Mean"],
 
 autoplot(temp_change_GISTEMP)
 ```
-Both have consistent results. Do we stick to one or both?
-There is clear trend. Seasonality might need to decompose. thank you.
 
+Both have consistent results. Do we stick to one or both? There is clear trend. Seasonality might need to decompose to see or use the ACF. Thank you.
 
 ```{r}
 
