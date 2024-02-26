@@ -10,9 +10,15 @@ Loading required libraries
 library(tidyverse)
 library(fpp2)
 library(urca)
+library(vars)
+library(tidyverse)
+library(fpp2)
+library(urca)
+library(vars)
+library(TSstudio)
 ```
 
-# 1.0 Investigating change in global temperatures over time
+# 1.0 Green model (Temperature, Sea levels and CO2 emissions)
 
 ## 1.1 Data processing
 
@@ -25,141 +31,92 @@ global_temp_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Da
 global_temp_df <- global_temp_df |>
   filter(!is.na(LandAndOceanAverageTemperature))
 
-head(global_temp_df)
-tail(global_temp_df)
+# Converting from monthly to yearly, then renaming columns for consistency
+global_temp_df <- global_temp_df |>
+  group_by(year(dt)) |>
+  summarize(LandAverageTemperature=mean(LandAverageTemperature))|>
+  rename(year=`year(dt)`, global_temperature=LandAverageTemperature)
+
+# range(global_temp_df$year)
+```
+
+Loading and cleaning sea levels data
+
+```{r}
+sea_levels_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/Global Mean Sea Levels (1880 to 2013).csv")
+
+# Selecting only relevant columns, then renaming for consistency
+sea_levels_df <- sea_levels_df |>
+  dplyr::select(Year, `CSIRO Adjusted Sea Level`)|>
+  rename(year=Year, sea_level=`CSIRO Adjusted Sea Level`)
+```
+
+Loading and cleaning carbon emissions data
+
+```{r}
+emissions_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/emission data.csv")
+
+# Pivot longer to make years become rows instead of columns in the raw data, then filtering World to get the global emissions, then selecting only the relevant columns, and lastly converting year from character to numeric for left join later on.
+emissions_df <- emissions_df |>
+  pivot_longer(-Country, names_to="year", values_to="carbon_emissions")|>
+  filter(Country=="World")|>
+  dplyr::select(-Country)|>
+  mutate(year=as.numeric(year))
+```
+
+Merging the 3 cleaned datasets to a green_model_df, which will be used to create models for the the green model.
+
+```{r}
+green_model_df <-global_temp_df |>
+  left_join(sea_levels_df, by="year")|>
+  left_join(emissions_df, by="year")
+
+```
+
+For the complete green_model_df, we start from 1881 to 2013 (sea_level_df is the limiting dataset). Lastly, we have to convert year from numeric to date.
+
+```{r}
+green_model_df <-green_model_df |>
+ filter(year>1879 & year<2014)|>
+  mutate(year=make_date(year))
+
 ```
 
 ```{r}
 # Create TS
-global_temp_ts <- ts(global_temp_df["LandAndOceanAverageTemperature"],
-                 start=c(1850,1), 
-                 end=c(2015,12),
-                 deltat=1/12)
-```
-
-Taking a look at the series
-
-```{r}
-autoplot(global_temp_ts)
-```
-
-Decomposing the time series into its trendcycle, seasonal and residual components.
-
-```{r}
-# mstl decomposition
-mstl(global_temp_ts)|>
-  autoplot()
-
-```
-
-Clear upward trend and monthly seasonality present.
-
-Now we shall test if series is stationary using the KPSS unit root test.
-
-```{r}
-# KPSS test for stationarity
-summary(ur.kpss(global_temp_ts))
-```
-
-Test statistic 6.4975 \> 0.463 (critical value at 5% level of significance), hence we reject H0: data is stationary to conclude that data is not stationary.
-
-Hence, we have to difference the series to ensure stationarity.
-
-```{r}
-# How many diffs?
-nsdiffs(global_temp_ts)
-ndiffs(diff(global_temp_ts,12))
-
-```
-
-Only 1 order of seasonal differencing is needed.
-
-```{r}
-diff_global_temp_ts <- diff(global_temp_ts,12)
-diff_global_temp_ts |>
-  autoplot()
-```
-
-Is series stationary after 1 order of seasonal diff?
-
-```{r}
-summary(ur.kpss(diff_global_temp_ts))
-```
-
-Yes, now the test statistic (0.0468) lies within the 5% crit value(0.463). We accept H0: data is stationary.
-
-## 1.2 Model building
-
-Model building workflow:
-
-Training set: 1850 to 1955
-
-Test set: 1956 to 1990
-
-Forecast set: 1991 to 2016
-
-1.  Splitting training and test set to approximately 75:25 ratio, we build models trained on the training set and evaluate their out-of-sample performance on the test set.
-
-2.  The best performing model is then trained on both sets (1850 to 1990), and then used to forecast post 1990s.
-
-3.  We then compare the 95% confidence intervals of this model's forecasted points to the actual points, and if the actual points lie outside of this confidence interval, we are certain that there is a significant change in rate of temperature increment from 1991 to 2016. This proves that increase in human activities during this period has led to climate change.
-
-```{r}
-global_temp_train <- window(global_temp_ts,
-                            start=c(1850,1),
-                            end=c(1955,12))
-
-global_temp_test <- window(global_temp_ts,
-                           start=c(1956,1),
-                           end=c(1990,12))
-```
-
-### 1.2.1 Auto arima
-
-model1 will be built using auto arima
-
-```{r}
-model1 <- auto.arima(global_temp_train, lambda = "auto")
-model1
+green_model_ts <- ts(green_model_df[c("carbon_emissions", 
+                                      "global_temperature", 
+                                      "sea_level")],
+                     start=c(1879,1), 
+                     end=c(2013,1))
 ```
 
 ```{r}
-autoplot(forecast(model1, h=length(global_temp_test)))
+VARselect(green_model_ts[,1:3])
 
 ```
-
-Evaluating model legitamacy using Ljung Box test
+Optimal BIC(SC) of 1
 
 ```{r}
-checkresiduals(model1)
-
+outofsample=10
+green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
+var3 <- VAR(green_model_ts_split$train[,1:3], p=3, type="const")
+var_fc <- forecast(var3, h=outofsample)
+accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
 ```
-
-p value 2.2e-16 \< 0.05, we reject the null hypothesis: there is no autocorrelation in the model. We conclude that there is autocorrelation in the model, hence it fails the Ljung Box test.
-
-### 1.2.2 Manually building ARIMA
-
-Thus, it might be better to build our own ARIMA models, and we shall start by looking at the ACF and PACF.
 
 ```{r}
-# BoxCox transform the training data to make variance as constant as possible
-transformed_global_temp_train <- BoxCox(global_temp_train, BoxCox.lambda(global_temp_train))
-# sorry for the long name
+var1 <- VAR(green_model_ts[,1:3], p=1, type="const")
+serial.test(var1, lags.pt=10, type="PT.asymptotic")
 ```
 
-How many orders of differencing is needed?
 ```{r}
-nsdiffs(transformed_global_temp_train)
-ndiffs(diff(transformed_global_temp_train,12))
+var2 <- VAR(green_model_ts[,1:3], p=2, type="const")
+serial.test(var2, lags.pt=10, type="PT.asymptotic")
 ```
 
-We should consider just 1 order of seasonal diff
 ```{r}
-tsdisplay(diff(transformed_global_temp_train,12))
+var3 <- VAR(green_model_ts[,1:3], p=3, type="const")
+serial.test(var3, lags.pt=10, type="PT.asymptotic")
+
 ```
-Hypothesis:
-
-Exponentially decaying ACF at seasonal lags (0, 12, 24) and between seasonal lags suggests seasonal AR and AR. PACF sharp drops at lag 1,13 suggests AR(1,13)
-
-Exponentially decaying PACF at lags 1,13,25 and lags 12,24,36 suggestive of SMA(1) and SMA(2). Spikes in ACF at lags 1,12 indicate MA(1), MA(12).
-
