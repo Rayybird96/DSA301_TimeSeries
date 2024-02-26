@@ -46,7 +46,6 @@ sea_levels_df <- sea_levels_df |>
 ```
 
 Loading and cleaning carbon emissions data
-
 ```{r}
 emissions_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/emission data.csv")
 
@@ -57,6 +56,9 @@ emissions_df <- emissions_df |>
   select(-Country)|>
   mutate(year=as.numeric(year))
 ```
+Loading world population data, with data pre-1951s naively filled. In the past, population did not grow as quickly, which justifies the use of a naive method for filling. 
+
+Population data is to help normalize CO2 emissions as part of feature engineering, in order to improve green model performance.
 ```{r}
 world_pop <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/world_population.csv")
 
@@ -65,19 +67,14 @@ world_pop <- world_pop |>
   select(year=Year, `World Population`)|>
   arrange((year))
 ```
-Now, we get the emissions per capita globally.
+Now, we get the emissions per global capita.
 ```{r}
 emissions_df <-emissions_df |>
   mutate(carbon_emissions_per_capita=emissions_df$carbon_emissions/world_pop$`World Population`)|>
   select(year, carbon_emissions_per_capita, carbon_emissions)
-
-
 ```
 
-
-
 Merging the 3 cleaned datasets to a green_model_df, which will be used to create models for the the green model.
-
 ```{r}
 green_model_df <-global_temp_df |>
   left_join(sea_levels_df, by="year")|>
@@ -86,7 +83,6 @@ green_model_df <-global_temp_df |>
 ```
 
 For the complete green_model_df, we start from 1881 to 2013 (sea_level_df is the limiting dataset). Lastly, we have to convert year from numeric to date.
-
 ```{r}
 green_model_df <-green_model_df |>
  filter(year>1879 & year<2014)|>
@@ -94,6 +90,7 @@ green_model_df <-green_model_df |>
 
 ```
 
+Creating timeseries object with the 3 variables for multivariate modelling, and autoplotting each respective variable for data visualization.
 ```{r}
 # Create TS
 green_model_ts <- ts(green_model_df[c("carbon_emissions_per_capita", 
@@ -117,19 +114,14 @@ ts(green_model_df[c("sea_level")],
                      end=c(2013,1))|> autoplot()
 ```
 
+## 1.2 Model building
+
+Building VAR models
 ```{r}
 vars::VARselect(green_model_ts[,1:3])
 
 ```
-
-```{r}
-outofsample=10
-green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
-var3 <- vars::VAR(green_model_ts_split$train[,1:3], p=3, type="const")
-var_fc <- forecast(var3, h=outofsample)
-accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
-```
-
+Check if VAR model passes tests
 ```{r}
 var1 <- vars::VAR(green_model_ts[,1:3], p=1, type="const")
 vars::serial.test(var1, lags.pt=10, type="PT.asymptotic")
@@ -145,3 +137,22 @@ var3 <- vars::VAR(green_model_ts[,1:3], p=3, type="const")
 vars::serial.test(var3, lags.pt=10, type="PT.asymptotic")
 
 ```
+Now we measure the goodness-of-fit by looking at out-of-sample RMSE and MAPE for the various VAR models.
+
+VAR of order 1
+```{r}
+outofsample=10
+green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
+var3 <- vars::VAR(green_model_ts_split$train[,1:3], p=1, type="const")
+var_fc <- forecast(var3, h=outofsample)
+accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
+```
+VAR of order 3
+```{r}
+outofsample=10
+green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
+var3 <- vars::VAR(green_model_ts_split$train[,1:3], p=3, type="const")
+var_fc <- forecast(var3, h=outofsample)
+accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
+```
+
