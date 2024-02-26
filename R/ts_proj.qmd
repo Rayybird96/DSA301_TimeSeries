@@ -159,7 +159,7 @@ tsdisplay(diff(transformed_global_temp_train,12))
 ```
 Hypothesis:
 
-Exponentially decaying ACF at seasonal lags (0, 12, 24) suggests seasonal AR, and PACF showing sharp seasonal spikes at lags 12, 24 and 36 suggests SMA(3). AR is not exponentially decreasing between seasonal lags suggesting AR(0).
+Exponentially decaying ACF at seasonal lags (0, 12, 24) and between seasonal lags suggests seasonal AR and AR. PACF sharp drops at lag 1,13 suggests AR(1,13)
 
 Exponentially decaying PACF at lags 1,13,25 and lags 12,24,36 suggestive of SMA(1) and SMA(2). Spikes in ACF at lags 1,12 indicate MA(1), MA(12).
 
