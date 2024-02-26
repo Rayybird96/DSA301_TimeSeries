@@ -53,14 +53,29 @@ emissions_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data
 # Pivot longer to make years become rows instead of columns in the raw data, then filtering World to get the global emissions, then selecting only the relevant columns, and lastly converting year from character to numeric for left join later on.
 emissions_df <- emissions_df |>
   pivot_longer(-Country, names_to="year", values_to="carbon_emissions")|>
-  filter(Country=="World")|>
+  filter(Country=="World", year>1879)|>
   select(-Country)|>
   mutate(year=as.numeric(year))
 ```
 ```{r}
 world_pop <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/world_population.csv")
 
+world_pop <- world_pop |>
+  filter(Year<2018)|>
+  select(year=Year, `World Population`)|>
+  arrange((year))
 ```
+Now, we get the emissions per capita globally.
+```{r}
+emissions_df <-emissions_df |>
+  mutate(carbon_emissions_per_capita=emissions_df$carbon_emissions/world_pop$`World Population`)|>
+  select(year, carbon_emissions_per_capita, carbon_emissions)
+
+
+```
+
+
+
 Merging the 3 cleaned datasets to a green_model_df, which will be used to create models for the the green model.
 
 ```{r}
@@ -81,7 +96,7 @@ green_model_df <-green_model_df |>
 
 ```{r}
 # Create TS
-green_model_ts <- ts(green_model_df[c("carbon_emissions", 
+green_model_ts <- ts(green_model_df[c("carbon_emissions_per_capita", 
                                       "global_temperature", 
                                       "sea_level")],
                      start=c(1880,1),
@@ -103,30 +118,30 @@ ts(green_model_df[c("sea_level")],
 ```
 
 ```{r}
-VARselect(green_model_ts[,1:3])
+vars::VARselect(green_model_ts[,1:3])
 
 ```
 
 ```{r}
 outofsample=10
 green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
-var3 <- VAR(green_model_ts_split$train[,1:3], p=3, type="const")
+var3 <- vars::VAR(green_model_ts_split$train[,1:3], p=3, type="const")
 var_fc <- forecast(var3, h=outofsample)
 accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
 ```
 
 ```{r}
-var1 <- VAR(green_model_ts[,2:3], p=1, type="const")
-serial.test(var1, lags.pt=10, type="PT.asymptotic")
+var1 <- vars::VAR(green_model_ts[,1:3], p=1, type="const")
+vars::serial.test(var1, lags.pt=10, type="PT.asymptotic")
 ```
 
 ```{r}
-var2 <- VAR(green_model_ts[,2:3], p=2, type="const")
-serial.test(var2, lags.pt=10, type="PT.asymptotic")
+var2 <- vars::VAR(green_model_ts[,1:3], p=2, type="const")
+vars::serial.test(var2, lags.pt=10, type="PT.asymptotic")
 ```
 
 ```{r}
-var3 <- VAR(green_model_ts[,2:3], p=3, type="const")
-serial.test(var3, lags.pt=10, type="PT.asymptotic")
+var3 <- vars::VAR(green_model_ts[,1:3], p=3, type="const")
+vars::serial.test(var3, lags.pt=10, type="PT.asymptotic")
 
 ```
