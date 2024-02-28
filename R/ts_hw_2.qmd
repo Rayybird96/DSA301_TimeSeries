@@ -1,0 +1,123 @@
+---
+title: "Time Series HW 2"
+format: html
+editor: visual
+---
+
+Load required packages:
+
+```{r}
+library(fpp2)
+library(forecast)
+```
+
+## 3a
+```{r}
+autoplot(advert, facets=TRUE)
+
+```
+It use useful to set facets=TRUE, since there are 2 variables with different scale and magnitude. Hence, a facet plot would be able to effectively illustrate this better than a combined plot.
+
+## 3b
+```{r}
+tslm(sales~advert, advert)
+
+```
+## 3c
+To show that the residuals have significant autocorrelation,
+```{r}
+checkresiduals(tslm(sales~advert, advert))
+```
+The p value of 0.02856 < 0.05, hence we rej H0 (there is no autocorrelation) to conclude there is autocorrelation
+
+## 3d
+```{r}
+Arima(advert[,"sales"], xreg=advert[,"advert"],
+  order=c(0,0,0))
+checkresiduals(Arima(advert[,"sales"], xreg=advert[,"advert"],
+  order=c(0,0,0)))
+```
+No difference, still fails ljung box test (p value 0.0002<0.05)
+
+## 3e & f
+```{r}
+auto.arima(advert[,2], lambda="auto")
+checkresiduals(auto.arima(advert[,2], lambda="auto"))
+```
+In this case, auto.arima() estimates ARIMA(0,0,0) as in part d, this time with a mean of 1.0909. However, the model passes the ljung box test as p value 0.62>0.05.
+
+## 3g
+```{r}
+forecast(auto.arima(advert[,2], lambda="auto"), h=6)
+autoplot(forecast(auto.arima(advert[,2], lambda="auto"), h=6))
+```
+
+## 4a & b
+
+```{r}
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + e[i]
+```
+
+As I change phi 1, the coefficient on Y~t-1~ changes, hence the time plot changes. phi 1 has to be between -1 and 1, for the time plot to be legit. Outside this range, the time plot is no longer stationary.
+
+## 4c & d
+
+Creating an MA(1) with theta as 0.6
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*e[i-1] + e[i]
+```
+
+Changing around the theta value
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- -1.6*e[i-1] + e[i]
+
+autoplot(y)
+```
+
+As I change theta 1, the coefficient on e~t-1~ changes, hence the time plot changes.
+
+## 4e
+
+Generating an ARMA(1,1) with coefficients 0.6
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + 0.6*e[i-1] + e[i]
+```
+
+## 4f
+
+Generating an AR(2) with phi1 = -0.8 and phi2 = 0.3
+
+```{r}
+z <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 3:100) {
+  z[i] <--0.8*z[i-1] + 0.3*z[i-2] + e[i]
+}
+```
+
+## 4g
+
+Graphing the 2 series and comparing them
+
+```{r}
+autoplot(y)
+autoplot(z)
+```
+
+Comparing the first plot to the second, the first plot exhibits stationarity while the second plot has a constant mean but increasing variance.
