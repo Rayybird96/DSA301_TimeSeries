@@ -10,6 +10,7 @@ Loading required libraries
 library(tidyverse)
 library(fpp2)
 library(urca)
+library(TSstudio)
 ```
 
 # 1.0 Green model (Temperature, Sea levels and CO2 emissions)
@@ -105,7 +106,7 @@ ts(green_model_df[c("global_temperature")],
                      start=c(1880,1),
                      end=c(2013,1)) |> autoplot()
 
-ts(green_model_df[c("carbon_emissions")],
+ts(green_model_df[c("carbon_emissions_per_capita")],
                      start=c(1880,1),
                      end=c(2013,1))|> autoplot()
 
@@ -115,6 +116,8 @@ ts(green_model_df[c("sea_level")],
 ```
 
 ## 1.2 Model building
+
+### 1.2.1 VAR
 
 Building VAR models
 ```{r}
@@ -135,24 +138,55 @@ vars::serial.test(var2, lags.pt=10, type="PT.asymptotic")
 ```{r}
 var3 <- vars::VAR(green_model_ts[,1:3], p=3, type="const")
 vars::serial.test(var3, lags.pt=10, type="PT.asymptotic")
-
 ```
+p value is 0.773, 0.997, and 0.995 respectively. Hence we accept the H0 for all the VAR models and all passes the Portmanteau test.
+
 Now we measure the goodness-of-fit by looking at out-of-sample RMSE and MAPE for the various VAR models.
 
 VAR of order 1
 ```{r}
 outofsample=10
 green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
-var3 <- vars::VAR(green_model_ts_split$train[,1:3], p=1, type="const")
-var_fc <- forecast(var3, h=outofsample)
+green_var1 <- vars::VAR(green_model_ts_split$train[,1:3], p=1, type="const")
+var_fc <- forecast(green_var1, h=outofsample)
 accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
 ```
+VAR of order 2
+```{r}
+green_var2 <- vars::VAR(green_model_ts_split$train[,1:3], p=2, type="const")
+var_fc <- forecast(green_var2, h=outofsample)
+accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
+```
+
 VAR of order 3
 ```{r}
-outofsample=10
-green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
-var3 <- vars::VAR(green_model_ts_split$train[,1:3], p=3, type="const")
-var_fc <- forecast(var3, h=outofsample)
+green_var3 <- vars::VAR(green_model_ts_split$train[,1:3], p=3, type="const")
+var_fc <- forecast(green_var3, h=outofsample)
 accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
 ```
+VAR(3) has the lowest test RMSE(0.276) and lowest test MAPE(2.59). Thus, VAR(3) is the optimal model.
+
+### 1.2.2 VECM
+First, we determine number of cointegrating relationships
+```{r}
+summary(ca.jo(green_model_ts_split$train))
+```
+The smallest number of cointegrating relationships where we fail to reject the null is r=2.
+
+We determine the number of VECM lags w same method as earlier
+```{r}
+vars::VARselect(green_model_ts_split$train)
+```
+Based on the BIC(SC) criteria, 1 lag is used
+
+Measuring the accuracy of VECM with lag=1 and cointegration r=2
+```{r}
+green_vecm <- VECM(green_model_ts_split$train[,1:3],lag=1, r=2, estim="ML")
+vecm_fc <- predict(green_vecm, n.ahead = outofsample)
+# accuracy for global temperature forecast
+accuracy(x=green_model_ts_split$test[,2], vecm_fc[,2])
+```
+## 1.2.2 Conclusion
+We have built a VAR(3) model and a VECM(1) with 2 cointegration r=2 model. Comparing the models, the VAR model has lower out of sample RMSE and MAPE than the VECM model.
+
 
