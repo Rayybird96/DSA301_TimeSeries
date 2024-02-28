@@ -20,6 +20,6 @@ In our project, we explore the effects of anthropogenic activities on climate ch
 We will be building a green model (green variables) and a yellow model (yellow + green variables). The green model consists of __natural variables (green)__, while the yellow model includes __independant human-caused variables (yellow)__.
 
 We will be using basic *autoregressive intergrated moving average (ARIMA)* for both models, to act as a benchmark against more complex models.
-The green variables interact with one another, hence can be modelled wih *vectorised auto regression (VAR)* and *vector error correction model (VECM)*.
+The green variables interact with one another, hence can be modelled with *vectorised auto regression (VAR)* and *vector error correction model (VECM)*.
 The yellow variables are independant, hence the yellow model can be modelled by *VAR-X, VECM-X and ARIMA-x* (where yellow variables are the exogenous variables).
 
