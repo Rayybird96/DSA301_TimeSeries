@@ -15,6 +15,7 @@ In our project, we explore the effects of anthropogenic activities on climate ch
 
 ## Methodology
 
+![image](https://github.com/Rayybird96/DSA301_TimeSeries/assets/138758608/975b2342-eafa-403e-84ca-488ed7482b16)
 
 
 
