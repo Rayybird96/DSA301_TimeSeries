@@ -11,6 +11,7 @@ library(tidyverse)
 library(fpp2)
 library(urca)
 library(TSstudio)
+library(tsDyn)
 ```
 
 # 1.0 Green model (Temperature, Sea levels and CO2 emissions)
@@ -58,6 +59,7 @@ emissions_df <- emissions_df |>
   select(-Country)|>
   mutate(year=as.numeric(year))
 ```
+
 
 Loading world population data, with data pre-1951s naively filled. In the past, population did not grow as quickly, which justifies the use of a naive method for filling.
 
@@ -131,7 +133,6 @@ Building VAR models
 
 ```{r}
 vars::VARselect(green_model_ts[,1:3])
-
 ```
 
 Check if VAR model passes tests
@@ -181,7 +182,11 @@ var_fc <- forecast(green_var3, h=outofsample)
 accuracy(x=green_model_ts_split$test[,2:2], var_fc$forecast$global_temperature)
 ```
 
-VAR(3) has the lowest test RMSE(0.276) and lowest test MAPE(2.59). Thus, VAR(3) is the optimal model.
+VAR(3) has the lowest test RMSE(0.276) and lowest test MAPE(2.59). Thus, VAR(3) is the optimal model based on model performance alone.
+
+However, we can only use VAR(1). Reason: number of parameters scale very quickly with VAR of higher orders. If VAR(1), there will be 12 variables which require 120 records/years. If VAR(3), we have 30 variables which require 300 years of data! (*10 observations per variable as a rule of thumb to prevent model overfitting*)
+
+VAR variables: (1+pk)k, where k is no. of variables and p is no. of lags
 
 ### 1.2.2 VECM
 
@@ -210,15 +215,49 @@ vecm_fc <- predict(green_vecm, n.ahead = outofsample)
 accuracy(x=green_model_ts_split$test[,2], vecm_fc[,2])
 ```
 
-## 1.2.3 ARIMA
+### 1.2.3 ARIMA
 
 ARIMA model acts as the benchmark model, to which more complex VAR and VECM models will be compared to.
 
 ```{r}
 auto.arima(green_model_ts_split$train[,2], lambda="auto")
-checkresiduals(green_model_ts_split$train[,2], lambda="auto")
+checkresiduals(auto.arima(green_model_ts_split$train[,2], lambda="auto"))
+```
+
+auto.arima() chooses ARIMA(0,1,1), but we shall explore other ARIMA possibilities by manually creating models using the ACF & PACF plots.
+
+```{r}
+ndiffs((green_model_ts_split$train[,2]))
+# 1 difference is needed
+tsdisplay(diff(green_model_ts_split$train[,2]))
+# AR of 0 and MA of 1 and difference of 1. AR is 0 as ACF is not gradually decreasing. MA could be 1,4 due to cutoffs at those respective lags in ACF.
+```
+
+```{r}
+arima1 <- Arima(green_model_ts_split$train[,2], lambda="auto", order=c(0,1,4))
+arima1
+arima2 <- Arima(green_model_ts_split$train[,2], lambda="auto", order=c(0,1,1))
+arima2
+```
+
+```{r}
+checkresiduals(arima1)
+checkresiduals(arima2)
+```
+
+```{r}
+accuracy(x=green_model_ts_split$test[,2], forecast(arima2))
+accuracy(x=green_model_ts_split$test[,2], forecast(arima1))
 ```
 
 ## 1.2.4 Conclusion
 
-We have built a VAR(3) model and a VECM(1) with 2 cointegration r=2 model. Comparing the models, the VAR model has lower out of sample RMSE and MAPE than the VECM model.
+We have built a VAR(1) model and a VECM(1) with 2 cointegration r=2 model. Comparing the models, the VAR model has lower out of sample RMSE and MAPE than the VECM model.
+
+However, ARIMA outperforms both models. I guess the moral of the story is simple is better and we should incorporate this mindset to our everyday lives :)
+
+# 2.0 Blue model
+
+
+# 3.0 Yellow model
+
