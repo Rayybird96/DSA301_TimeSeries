@@ -191,9 +191,9 @@ First, we determine number of cointegrating relationships
 summary(ca.jo(green_model_ts_split$train))
 ```
 
-The smallest number of cointegrating relationships where we fail to reject the null is r=2.
+The smallest number of cointegrating relationships where we fail to reject the null is r=2. Hence, r=2.
 
-We determine the number of VECM lags with the same method as earlier
+Then, we determine the number of VECM lags with the same method as earlier
 
 ```{r}
 vars::VARselect(green_model_ts_split$train)
@@ -210,6 +210,15 @@ vecm_fc <- predict(green_vecm, n.ahead = outofsample)
 accuracy(x=green_model_ts_split$test[,2], vecm_fc[,2])
 ```
 
-## 1.2.2 Conclusion
+## 1.2.3 ARIMA
+
+ARIMA model acts as the benchmark model, to which more complex VAR and VECM models will be compared to.
+
+```{r}
+auto.arima(green_model_ts_split$train[,2], lambda="auto")
+checkresiduals(green_model_ts_split$train[,2], lambda="auto")
+```
+
+## 1.2.4 Conclusion
 
 We have built a VAR(3) model and a VECM(1) with 2 cointegration r=2 model. Comparing the models, the VAR model has lower out of sample RMSE and MAPE than the VECM model.
