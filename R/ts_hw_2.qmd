@@ -12,41 +12,53 @@ library(forecast)
 ```
 
 ## 3a
+
 ```{r}
 autoplot(advert, facets=TRUE)
 
 ```
+
 It use useful to set facets=TRUE, since there are 2 variables with different scale and magnitude. Hence, a facet plot would be able to effectively illustrate this better than a combined plot.
 
 ## 3b
+
 ```{r}
 tslm(sales~advert, advert)
 
 ```
+
 ## 3c
+
 To show that the residuals have significant autocorrelation,
+
 ```{r}
 checkresiduals(tslm(sales~advert, advert))
 ```
-The p value of 0.02856 < 0.05, hence we rej H0 (there is no autocorrelation) to conclude there is autocorrelation
+
+The p value of 0.02856 \< 0.05, hence we rej H0 (there is no autocorrelation) to conclude there is autocorrelation
 
 ## 3d
+
 ```{r}
 Arima(advert[,"sales"], xreg=advert[,"advert"],
   order=c(0,0,0))
 checkresiduals(Arima(advert[,"sales"], xreg=advert[,"advert"],
   order=c(0,0,0)))
 ```
-No difference, still fails ljung box test (p value 0.0002<0.05)
+
+No difference, still fails ljung box test (p value 0.0002\<0.05)
 
 ## 3e & f
+
 ```{r}
 auto.arima(advert[,2], lambda="auto")
 checkresiduals(auto.arima(advert[,2], lambda="auto"))
 ```
-In this case, auto.arima() estimates ARIMA(0,0,0) as in part d, this time with a mean of 1.0909. However, the model passes the ljung box test as p value 0.62>0.05.
+
+In this case, auto.arima() estimates ARIMA(0,0,0) as in part d, this time with a mean of 1.0909. However, the model passes the ljung box test as p value 0.62\>0.05.
 
 ## 3g
+
 ```{r}
 forecast(auto.arima(advert[,2], lambda="auto"), h=6)
 autoplot(forecast(auto.arima(advert[,2], lambda="auto"), h=6))
