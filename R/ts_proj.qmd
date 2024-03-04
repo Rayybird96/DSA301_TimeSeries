@@ -257,7 +257,21 @@ We have built a VAR(1) model and a VECM(1) with 2 cointegration r=2 model. Compa
 However, ARIMA outperforms both models. I guess the moral of the story is simple is better and we should incorporate this mindset to our everyday lives :)
 
 # 2.0 Blue model
+VAR-X with sea,temp and eXogenous CO2
+```{r}
+outofsample=10
+green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
+# global_temperature and sea_level in VAR, carbon_emssions_per_capita as eXogenous
+green_var1 <- vars::VAR(green_model_ts_split$train[,2:3], p=1, type="const", exogen = green_model_ts_split$train[,1])
 
+# Making exogenous variable a matrix for dumvar argument in predict() fxn
+exog_for_forecasting <- matrix(green_model_ts_split$test[,1], ncol = 1)
+varx_fc <- predict(green_var1, n.ahead=outofsample, dumvar=exog_for_forecasting)
+
+# Converting the VAR-X forecast back into time series object, for comparison with time series test data, getting the accuracy.
+varx_fc <- ts(var_fc$fcst$global_temperature, start=c(2004,1), end=c(2013,1))
+accuracy(x=green_model_ts_split$test[,2], varx_fc)
+```
 
 # 3.0 Yellow model
 
