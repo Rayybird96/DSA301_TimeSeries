@@ -165,7 +165,23 @@ accuracy(x=singers_ts_split$test[,2], arima_fc)
 ARIMA x to forecast taylor swift with Justin bieber as eXogenous
 ```{r}
 # taylor swift
-arimax1 <- auto.arima(singers_ts_split$train[,2], lambda="auto", xreg=singers_ts_split$train[,3])
-arimax1_fc <- forecast(arimax1, h=outofsample, xreg=singers_ts_split$train[,3])
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg=singers_ts_split$train[,3] # Justin Bieber
+
+# Build ARIMA x and test model accuracy
+arimax1 <- auto.arima(singers_ts_split$train[,2], lambda="auto", xreg=xreg)
+arimax1_fc <- forecast(arimax1, h=outofsample, xreg=xreg)
 accuracy(x=singers_ts_split$test[,2], arimax1_fc)
+```
+
+ARIMA x to forecast taylor swift with Justin bieber, Selena Gomez, Rihanna as eXogenous
+```{r}
+# taylor swift
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg=singers_ts_split$train[,3:5] # Justin Bieber, Selena Gomez, Rihanna
+
+# Build ARIMA x and test model accuracy
+arimax2 <- auto.arima(singers_ts_split$train[,2], lambda="auto", xreg=xreg)
+arimax2_fc <- forecast(arimax2, h=outofsample, xreg=xreg)
+accuracy(x=singers_ts_split$test[,2], arimax2_fc)
 ```
