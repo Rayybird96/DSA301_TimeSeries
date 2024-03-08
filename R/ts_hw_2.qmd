@@ -428,7 +428,7 @@ ARMA(1,1) with parameters $\phi_1 = 0.6, \theta_1 =0.6, \sigma^2 = 1$ gives a pl
 Read in the csv file from the above preliminary step in R, convert it to a TS object, and build a forecasting model on each of the time series shown. As you are forecasting multiple time series, you can choose either single time series methods (e.g. ARIMA) or multiple time series methods such as VAR and VECM. Remember to use out of sample performance as the gauge between different classes of models
 
 ```{r}
-musicians_data_raw <- read_csv("~/Documents/smoosmoo/HW2/dataset/output_timeseries.csv")
+musicians_data_raw <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/hw2_qn5.csv")
 musicians_ts <-musicians_data_raw |> rename(date_ref = ...1) |> select(-date_ref) |> ts(start = c(2020,01,01), end = c(2023,12,31), frequency = 365) 
 # sampling 
 outofsample= 220 # 80-20 ratio on test and train set 
