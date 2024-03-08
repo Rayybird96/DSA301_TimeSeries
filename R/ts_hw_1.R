@@ -285,7 +285,7 @@ stlf_forecast <- forecast(stlf(train),h=7)
 
 # Comparing test scores
 accuracy(snaive_forecast, test)
-accuracy(stlf_forecast, test)
+accuracy(stlf_forecast, test) 
 
 # stlf has lower out of sample test MAPE and RMSE, hence it performs better than snaive.
 
