@@ -257,21 +257,63 @@ We have built a VAR(1) model and a VECM(1) with 2 cointegration r=2 model. Compa
 However, ARIMA outperforms both models. I guess the moral of the story is simple is better and we should incorporate this mindset to our everyday lives :)
 
 # 2.0 Blue model
-VAR-X with sea,temp and eXogenous CO2
+The blue model is an extension of the green model, thus uses the exact same time series object input.
+
+## 2.1 VAR-X
+VAR-X with VAR components being sea,temp and eXogenous CO2
 ```{r}
-outofsample=10
+outofsample=12
 green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
 # global_temperature and sea_level in VAR, carbon_emssions_per_capita as eXogenous
-green_var1 <- vars::VAR(green_model_ts_split$train[,2:3], p=1, type="const", exogen = green_model_ts_split$train[,1])
+blue_var1 <- vars::VAR(green_model_ts_split$train[,2:3], p=1, type="const", exogen = green_model_ts_split$train[,1])
 
 # Making exogenous variable a matrix for dumvar argument in predict() fxn
 exog_for_forecasting <- matrix(green_model_ts_split$test[,1], ncol = 1)
-varx_fc <- predict(green_var1, n.ahead=outofsample, dumvar=exog_for_forecasting)
+varx_fc <- predict(blue_var1, n.ahead=outofsample, dumvar=exog_for_forecasting)
 
 # Converting the VAR-X forecast back into time series object, for comparison with time series test data, getting the accuracy.
-varx_fc <- ts(var_fc$fcst$global_temperature, start=c(2004,1), end=c(2013,1))
-accuracy(x=green_model_ts_split$test[,2], varx_fc)
+
+# global_temperature
+varx_fc1 <- ts(varx_fc$fcst$global_temperature, start=c(2004,1), end=c(2013,1))
+accuracy(x=green_model_ts_split$test[,2], varx_fc1)
+
+# sea_level
+varx_fc2 <- ts(varx_fc$fcst$sea_level, start=c(2004,1), end=c(2013,1))
+accuracy(x=green_model_ts_split$test[,3], varx_fc2)
 ```
+## 2.2 VECM-X
+Next, trying out VECM with sea, temp and eXogenous CO2 to build a VECM-X model.
+
+Firstly, we determine the number of cointegrated relationships using the Johansen VECM.
+```{r}
+summary(ca.jo(green_model_ts_split$train[,2:3]))
+
+```
+The minimum r which we fail to reject the null hypothesis is 1, since the test statistic lies within the critical value. Hence, there is 1 cointegrating relationship, meaning we can use VECM-X.
+
+Determining number of VECM lags
+
+```{r}
+vars::VARselect(green_model_ts_split$train[,2:3])
+
+```
+Optimal BIC implies an order lag=2 VECM-x with 1 cointegrating relationship, r=1.
+
+```{r}
+blue_vecmx <- VECM(green_model_ts_split$train[,2:3],lag=2, r=1, estim="ML", exogen=green_model_ts_split$train[,1])
+vecmx_fc <- predict(blue_vecmx, n.ahead = outofsample, xreg=green_model_ts_split$test[,1])
+# accuracy for global temperature forecast
+accuracy(x=green_model_ts_split$test[,2], vecmx_fc[,2])
+
+```
+# TODO: make VECM-X work!!
 
 # 3.0 Yellow model
+## 3.1 Data processing
+We introduce more variables in this section, which are human-caused. These data range from 1965 to 2013 and builds upon the original 3 variable model (green model).
+
+```{r}
+
+
+```
 
