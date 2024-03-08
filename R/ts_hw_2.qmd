@@ -1,40 +1,264 @@
 ---
-title: "Time Series HW 2"
+title: "DSA301 HW2"
 format: html
 editor: visual
+toc: TRUE
 ---
 
-Load required packages:
+libraries
 
 ```{r}
+library(readxl)
 library(fpp2)
-library(forecast)
+library(vars)
+library(gridExtra)
+library(urca)
+library(tsDyn)
+library(aTSA)
+library(astsa)
+library(readr)
 library(tidyverse)
 library(TSstudio)
+library(lubridate)
 ```
-## 1a
+
+## question 1
+
+Consider usmelec, the total net generation of electricity (in billion kilowatt hours) by the U.S. electric industry (monthly for the period January 1973 – June 2013). In general there are two peaks per year: in mid-summer and mid-winter.
+
 ```{r}
+# Libraries
+library(forecast)
+library(tseries)
+library(lmtest)
+library(readxl)
+library(fpp2)
+library(urca)
+```
 
+1a. Examine the 12-month moving average of this series to see what kind of trend is involved.
+
+```{r}
+usmelec_12 = ma(usmelec, order = 12)
+autoplot(usmelec_12)
+```
+
+We observe an upwards sloping trend.
+
+1b. Do the data need transforming? If so, find a suitable transformation.
+
+```{r}
+usmelec_lambda = BoxCox.lambda(usmelec)
+bc_usmelec = BoxCox(usmelec, lambda=usmelec_lambda)
+autoplot(bc_usmelec)
+
+#taking into account monthly average, instead of monthly aggregated electricity consumption
+usmelec_ave = usmelec/monthdays(usmelec) #average monthly data
+usmelec_lambda_ave = BoxCox.lambda(usmelec_ave) #finding optimal lambda with monthly average data
+bc_usmelec_ave <- BoxCox(usmelec_ave, lambda=usmelec_lambda_ave)
+
+autoplot(bc_usmelec)
+autoplot(bc_usmelec_ave)
+```
+
+1c. Are the data stationary? If not, find an appropriate differencing which yields stationary data.
+
+```{r}
+bc_usmelec_ave |> ur.kpss() |> summary() #fails KPSS unit root test. 
+# Data is not stationary - use ndiffs
+ndiffs(bc_usmelec_ave) # 1
+nsdiffs(bc_usmelec_ave) # 1
+
+# Use First Differencing
+
+diff_usmelec <- diff(diff(bc_usmelec_ave, 12)) #seasonal differencing with first difference
+diff_usmelec |> ur.kpss() |> summary()# stationary 
+```
+
+Data is not stationary before differencing under the KPSS Unit root test as we reject the null hypothesis that the time series is stationary. Therefore, we perform seasonal differencing and first differencing according to nsdiffs() and ndiffs(). Under the KPSS unit root test for the differenced data, we can then accept the null hypothesis that the time series is stationary.
+
+1d. Identify a couple of ARIMA models that might be useful in describing the time series. Which of your models is the best according to their AIC values? Similar as with HW1, repeat part (f) for around 3 “possible” models that you had shortlisted and estimated from parts (d) and (e).
+
+```{r}
+tsdisplay(usmelec)
+tsdisplay(diff_usmelec) # boxcox, average monthly electricity gen, seasonal and first differenced --> ARIMA(1, 1, 1/2)(2, 1, 1)
+
+### ARIMA models ###
+auto_sarima_ave_bc <- (auto.arima(usmelec_ave,seasonal = TRUE,lambda = "auto"))  # ARIMA(1, 1, 2)(2, 1, 1)[12] 
+
+# manually building arima models
+#possible orders - diff=1, sdiff=1, ar = 1,2, sar = 1,2, sma = 1, ma=1,2,3 
+sarima_ave_bc_2 <- Arima(usmelec_ave, order = c(1, 1, 1), seasonal = c(1, 1, 1), lambda = "auto")
+sarima_ave_bc_3 <- Arima(usmelec/monthdays(usmelec), order = c(1, 1, 1), seasonal = c(2, 1, 1), lambda = "auto")
+
+Arima(usmelec_ave, order = c(1, 1, 1), seasonal = c(1, 1, 1), lambda = "auto") #SARIMA(1,1,1)(1,1,1)[12] 
+Arima(usmelec_ave, order = c(1, 1, 2), seasonal = c(1, 1, 1), lambda = "auto") #SARIMA(1,1,2)(1,1,1)[12]
+Arima(usmelec_ave, order = c(1, 1, 3), seasonal = c(1, 1, 1), lambda = "auto") #SARIMA(1,1,3)(1,1,1)[12]
+Arima(usmelec_ave, order = c(2, 1, 1), seasonal = c(1, 1, 1), lambda = "auto") #SARIMA(2,1,1)(1,1,1)[12]
+Arima(usmelec_ave, order = c(2, 1, 2), seasonal = c(1, 1, 1), lambda = "auto") #SARIMA(2,1,2)(1,1,1)[12]
+Arima(usmelec_ave, order = c(2, 1, 3), seasonal = c(1, 1, 1), lambda = "auto") #SARIMA(2,1,3)(1,1,1)[12]
+Arima(usmelec_ave, order = c(1, 1, 1), seasonal = c(2, 1, 1), lambda = "auto") #SARIMA(1,1,1)(2,1,1)[12] --> -3327.67
+Arima(usmelec_ave, order = c(1, 1, 2), seasonal = c(2, 1, 1), lambda = "auto") #SARIMA(1,1,2)(2,1,1)[12], same as auto.arima (-3326.33)
+Arima(usmelec_ave, order = c(1, 1, 3), seasonal = c(2, 1, 1), lambda = "auto") #SARIMA(1,1,3)(2,1,1)[12] --> -3324.38
+Arima(usmelec_ave, order = c(2, 1, 1), seasonal = c(2, 1, 1), lambda = "auto") #SARIMA(2,1,1)(2,1,1)[12] --> -3326.24
+Arima(usmelec_ave, order = c(2, 1, 2), seasonal = c(2, 1, 1), lambda = "auto") #SARIMA(2,1,2)(2,1,1)[12]
+Arima(usmelec_ave, order = c(2, 1, 3), seasonal = c(2, 1, 1), lambda = "auto") #SARIMA(2,1,3)(2,1,1)[12]
+
+model1<- Arima(usmelec_ave, order = c(1, 1, 1), seasonal = c(2, 1, 1), lambda = "auto") # AIC = -3327.67
+model2 <- Arima(usmelec_ave, order = c(1, 1, 1), seasonal = c(1, 1, 1), lambda = "auto") # AIC = -3326.93
+model3 <- auto_sarima_ave_bc 
+
+# Compare AIC values:
+summary(model1) ## AIC = -3327.67
+summary(model2) # AIC = -3326.93
+summary(model3) # AIC = -3326.33
+
+# Model 1 is a better according to AIC values
+```
+
+1e. Estimate the parameters of your best model and do diagnostic testing on the residuals. Do the residuals resemble white noise? If not, try to find another ARIMA model which fits better.
+
+```{r}
+checkresiduals(model1) 
+```
+
+Yes, it mostly resembles white noise as it follows a normal distribution, and most lag values are within the blue dotted lines. It passes the ljung-box test, and we can accept the null hypothesis that there is no autocorrelation in the residuals
+
+1f. Forecast the next 15 years of electricity generation by the U.S. electric industry. Get the latest figures from the EIA to check the accuracy of your forecasts (treat the “latest figures from the EIA” as your “out of sample” period, and report accuracy statistics in the usual format for your forecast.
+
+```{r}
+electric_raw <- read_excel("~/Documents/smoosmoo/HW2/dataset/Table_7.1_Electricity_Overview.xlsx")
+electric_ts <- electric_raw |> select(`electric_power`) |> ts(start =c(1973,01), end = c(2023,11), frequency = 12) # convert to ts
+
+#sampling for test
+outofsampleperiod = 180 # 15years*12 months
+electric_ts_split <- ts_split(electric_ts, sample.out=outofsampleperiod)
+electric_ts_split$test # test set!
+
+#sampling for train 
+usmelec_ts_split <- ts_split(usmelec_ave, sample.out = 55)
+usmelec_ts_split$train #train set!
+
+arima_model <-Arima(usmelec_ts_split$train , order = c(1, 1, 1), seasonal = c(2, 1, 1), lambda = "auto") #lowest AIC arima
+fcusmelec <- forecast::forecast(arima_model , h = outofsampleperiod) #forecast with arima model
+
+forecasted_values <- fcusmelec$mean
+accuracy(forecasted_values, electric_ts_split$test)
 
 ```
 
-## 3a
+The forecasted value is higher than the actual figures from the EIA, the forecasted has a consistent upward trend while the actual data seem to be constant. The actual figures shows a sharp drop in 2021 while the forecasted graph predicted an upward trend.There is a lack of accuracy in the forecast in this case.
+
+1g. Eventually, the prediction intervals are so wide that the forecasts are not particularly useful. How many years of forecasts do you think are sufficiently accurate to be usable? • Hint: For part (g), consider the ratio of your numerical forecast
+
+It will be challenging to forecast 15 years of data based on 40 years of historical data. Based on the concept of using 80% of the data for training and 20% of the training, ideally we should be able to forecast 10 years of data of which maybe only the first 5 years of forecasted data will be sufficiently accurate to be usable.
+
+## question 2
+
+a.  Explore the “visnights” variable in fpp2. Look up online in R’s documentation definition of variables. Put this description as the answer to this question
+
+```{r}
+?visnights
+```
+
+Total quarterly visitor nights (in millions) from 1998-2016 for twenty regions of Australia within six states. The states are: New South Wales, Queensland, South Australia, Victoria, Western Australia, and Other.
+
+b.  Plot the various columns. Does there appear to be:
+
+```{r}
+autoplot(visnights)
+
+#to see seasonality better
+for (i in 1:20) {
+  visnights[, i] |> ggseasonplot() |> print()
+}
+
+for (i in 1:20) {
+  visnights[, i] |> mstl() |> autoplot() |> print()
+}
+```
+
+There are 2 types of seasonality that we can observe,
+
+-   NSW, VIC, SA, and WA: These regions experience warmer seasons (summer) in Q1 (December - February) and Q4 (March - May), potentially attracting more visitors for outdoor activities, holidays, and school breaks. Q2 (June - August) and Q3 (September - November) might be less preferred due to cooler or even colder temperatures in some regions.
+-   QLD: Queensland's climate is generally warmer year-round, with less pronounced seasonal variations. However, Q2 (June - August) might still be slightly cooler, potentially influencing visitor numbers.
+-   there is no obvious trend even after looking at MSTL decomposition of each individual region
+
+3.  Pick 2 variables which are likely to granger cause one another. Explain your intuition for why this may be the case (note: there are multiple possible ‘correct’ answers here)
+
+```{r}
+VARselect(visnights[,1:2]) #p=4
+visnights_var_1_2 <- VAR(visnights[,1:2], p = 4)
+serial.test(visnights_var_1_2) #passes serial test, no autocorrelation in residuals
+causality(visnights_var_1_2, cause = 'NSWMetro')$Granger #NSWMetro does not granger causes NSWNthCo
+causality(visnights_var_1_2, cause = 'NSWNthCo')$Granger #NSWNthCo granger causes NSWMetro
+
+VARselect(visnights[,2:3]) #p=4
+visnights_var_2_3 <- VAR(visnights[,2:3], p = 4)
+serial.test(visnights_var_2_3) #passes serial test, no autocorrelation in residuals
+causality(visnights_var_2_3, cause = 'NSWNthCo')$Granger #NSWNthCo granger causes NSWSthCo
+causality(visnights_var_2_3, cause = 'NSWSthCo')$Granger #NSWSthCo granger causes NSWNthCo
+
+#NSWNthCo granger causes NSWSthCo, and NSWSthCo granger causes NWSNthCo
+
+VARselect(visnights[,3:4]) #p=4
+visnights_var_3_4 <- VAR(visnights[,3:4], p = 4)
+serial.test(visnights_var_3_4) #passes serial test, no autocorrelation in residuals
+causality(visnights_var_3_4, cause = 'NSWSthIn')$Granger #NSWNthCo granger causes NSWSthCo
+causality(visnights_var_3_4, cause = 'NSWSthCo')$Granger #NSWSthCo granger causes NSWNthCo
+
+VARselect(visnights[,4:5]) #p=1
+visnights_var_4_5 <- VAR(visnights[,4:5], p = 1)
+serial.test(visnights_var_4_5) #passes serial test, no autocorrelation in residuals
+causality(visnights_var_4_5, cause = 'NSWSthIn')$Granger 
+causality(visnights_var_4_5, cause = 'NSWNthIn')$Granger 
+```
+
+4.  use ndiffs() and nsdiffs() to determine differences required to render 2 variables (from part 3) stationary. convert variables to stationary form or explain why no transformation needed
+
+```{r}
+nsdiffs(visnights[,4]) # seasonal difference not required
+ndiffs(visnights[,4]) # non seasonal difference not required
+
+nsdiffs(visnights[,5])# seasonal difference not required
+ndiffs(visnights[,5]) # non seasonal difference not required
+```
+
+5.  Perform granger tests on those 2 variables to check that they indeed granger cause one another (p values which are borderline or modestly over limit are fine). Use the “causality” function in library(vars)
+
+```{r}
+VARselect(visnights[,4:5]) #p=1
+visnights_var_4_5 <- VAR(visnights[,4:5], p = 1)
+serial.test(visnights_var_4_5) #passes serial test, no autocorrelation in residuals
+causality(visnights_var_4_5, cause = 'NSWSthIn')$Granger 
+causality(visnights_var_4_5, cause = 'NSWNthIn')$Granger
+```
+
+6.  Build VAR model on the above 2 variables, and check residuals for time series patterns. Start by using VARselect, and then increase order of VAR model until residuals do not have significant information
+
+```{r}
+VARselect(visnights[,4:5]) #p=1
+visnights_var_4_5 <- VAR(visnights[,4:5], p = 1)
+serial.test(visnights_var_4_5) #passes serial test, no autocorrelation in residuals
+```
+
+## question 3
+
+3a.
 
 ```{r}
 autoplot(advert, facets=TRUE)
-
 ```
 
 It use useful to set facets=TRUE, since there are 2 variables with different scale and magnitude. Hence, a facet plot would be able to effectively illustrate this better than a combined plot.
 
-## 3b
+3b.
 
 ```{r}
 tslm(sales~advert, advert)
-
 ```
 
-## 3c
+3c.
 
 To show that the residuals have significant autocorrelation,
 
@@ -44,7 +268,7 @@ checkresiduals(tslm(sales~advert, advert))
 
 The p value of 0.02856 \< 0.05, hence we rej H0 (there is no autocorrelation) to conclude there is autocorrelation
 
-## 3d
+3d.
 
 ```{r}
 Arima(advert[,"sales"], xreg=advert[,"advert"],
@@ -53,9 +277,9 @@ checkresiduals(Arima(advert[,"sales"], xreg=advert[,"advert"],
   order=c(0,0,0)))
 ```
 
-No difference, still fails ljung box test (p value 0.0002\<0.05)
+No difference, still fails ljung box test (p value 0.0002 \<0.05)
 
-## 3e & f
+3e & f.
 
 ```{r}
 auto.arima(advert[,2], xreg=advert[,"advert"], lambda="auto")
@@ -64,14 +288,17 @@ checkresiduals(advert[,2], xreg=advert[,"advert"], lambda="auto")
 
 In this case, auto.arima() estimates ARIMA(0,1,0).The model passes the ljung box test as p value 0.59\>0.05.
 
-## 3g
+3g.
 
 ```{r}
-forecast(auto.arima(advert[,2], xreg=advert[,"advert"], lambda="auto"), h=6, xreg = rep(10,6))
-autoplot(forecast(auto.arima(advert[,2], xreg=advert[,"advert"], lambda="auto"), h=6, xreg = rep(10,6)))
+forecast::forecast(auto.arima(advert[,2], xreg=advert[,"advert"], lambda="auto"), h=6, xreg = rep(10,6))
+autoplot(forecast::forecast(auto.arima(advert[,2], xreg=advert[,"advert"], lambda="auto"), h=6, xreg = rep(10,6)))
 ```
 
-## 4a & b
+## question 4
+
+a.  Use the following R code to generate data from an AR(1) model with $\phi_1 = 0.6, \sigma^2 = 1$
+b.  Produce a time plot for the series. How does the plot change as you change $\phi_1$
 
 ```{r}
 set.seed(123)
@@ -79,109 +306,293 @@ y <- ts(numeric(100))
 e <- rnorm(100)
 for(i in 2:100)
   y[i] <- 0.6*y[i-1] + e[i]
+
+autoplot(y)
+tsdisplay(y)
+
+#try phi_1<1 
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 2*y[i-1] + e[i]
+autoplot(y)
+tsdisplay(y)
+
+#try phi_1>1 
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- -3*y[i-1] + e[i]
+autoplot(y)
+tsdisplay(y)
+
+#try -1<phi_1<1
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.1*y[i-1] + e[i]
+autoplot(y)
+tsdisplay(y)
+
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.3*y[i-1] + e[i]
+autoplot(y)
+tsdisplay(y)
 ```
 
-As I change phi 1, the coefficient on Y~t-1~ changes, hence the time plot changes. phi 1 has to be between -1 and 1, for the time plot to be legit. Outside this range, the time plot is no longer stationary.
+For $\phi_1 >1$, we observe that y increases exponentially with time, and does not have a constant mean and variance, which means y is non-stationary. For $\phi_1 <-1$, we observe that the variance of y also increases with time, which means y is non-stationary. However, when $-1<\phi_1<1$, we observe that y is stationary as it has a constant mean of $\frac{c}{1-\phi_1} = \frac{0}{1-\phi_1}$, and variance $\frac{\sigma^2}{|1-\phi_1^2|} = \frac{1}{|1-\phi_1^2|}$.
 
-## 4c & d
-
-Creating an MA(1) with theta as 0.6
+c.  Write your own code to generate data from an MA(1) model with $\theta_1 =0.6, \sigma^2 = 1$
+d.  Produce a time plot for the series. How does the plot change as you change $\theta_1$?
 
 ```{r}
+set.seed(123)
 y <- ts(numeric(100))
 e <- rnorm(100)
 for(i in 2:100)
   y[i] <- 0.6*e[i-1] + e[i]
-```
 
-Changing around the theta value
+autoplot(y)
+tsdisplay(y)
 
-```{r}
+#theta_1 >1
+set.seed(123)
 y <- ts(numeric(100))
 e <- rnorm(100)
 for(i in 2:100)
-  y[i] <- -1.6*e[i-1] + e[i]
-
+  y[i] <- 1.5*e[i-1] + e[i]
 autoplot(y)
+tsdisplay(y)
+
+#theta_1 <-1
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- -2*e[i-1] + e[i]
+autoplot(y)
+tsdisplay(y)
+
+#-1<theta_1<1 
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.3*e[i-1] + e[i]
+autoplot(y)
+tsdisplay(y)
 ```
 
-As I change theta 1, the coefficient on e~t-1~ changes, hence the time plot changes.
+The value of $\theta_1$ affects the smoothness of the plot
 
-## 4e
-
-Generating an ARMA(1,1) with coefficients 0.6
+e.  generate data from ARMA(1,1) model with $\phi_1 = 0.6, \theta_1 =0.6, \sigma^2 = 1$
+f.  Generate data from an AR(2) model with $\phi_1 = -0.8,\phi_2=0.3, \sigma^2 = 1$ (note that these parameters will give a non-stationary series)
 
 ```{r}
+#ARMA(1,1)
+set.seed(123)
 y <- ts(numeric(100))
 e <- rnorm(100)
 for(i in 2:100)
   y[i] <- 0.6*y[i-1] + 0.6*e[i-1] + e[i]
-```
-
-## 4f
-
-Generating an AR(2) with phi1 = -0.8 and phi2 = 0.3
-
-```{r}
-z <- ts(numeric(100))
-e <- rnorm(100)
-for(i in 3:100) {
-  z[i] <--0.8*z[i-1] + 0.3*z[i-2] + e[i]
-}
-```
-
-## 4g
-
-Graphing the 2 series and comparing them
-
-```{r}
 autoplot(y)
-autoplot(z)
+tsdisplay(y)
+y|>ur.kpss()|>summary() #to confirm that it is stationary 
+
+#AR(2)
+set.seed(123)
+y <- ts(numeric(100))
+e <- rnorm(100)
+y[1] <- e[1]   # Adding initial values
+y[2] <- e[2]   # Adding initial values
+for(i in 3:100) {
+  y[i] <- -0.8*y[i-1] + 0.3*y[i-2] + e[i]
+}
+
+autoplot(y)
+tsdisplay(y)
+y|>ur.kpss()|>summary() #to confirm that it is not stationary 
+
 ```
 
-Comparing the first plot to the second, the first plot exhibits stationarity while the second plot has a constant mean but increasing variance.
+ARMA(1,1) with parameters $\phi_1 = 0.6, \theta_1 =0.6, \sigma^2 = 1$ gives a plot that is stationary. AR(2) with parameters $\phi_1 = -0.8,\phi_2=0.3, \sigma^2 = 1$ gives a plot that is a non stationary time series as it has a increasing variance.
 
-## 5
+## question 5
+
+Read in the csv file from the above preliminary step in R, convert it to a TS object, and build a forecasting model on each of the time series shown. As you are forecasting multiple time series, you can choose either single time series methods (e.g. ARIMA) or multiple time series methods such as VAR and VECM. Remember to use out of sample performance as the gauge between different classes of models
+
 ```{r}
-df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/data/output_timeseries.csv")
-singers_ts <- ts(df, start=c(2020,1), end=c(2023,12), deltat=1/365)
-
+musicians_data_raw <- read_csv("~/Documents/smoosmoo/HW2/dataset/output_timeseries.csv")
+musicians_ts <-musicians_data_raw |> rename(date_ref = ...1) |> select(-date_ref) |> ts(start = c(2020,01,01), end = c(2023,12,31), frequency = 365) 
+# sampling 
+outofsample= 220 # 80-20 ratio on test and train set 
+musicians_ts_split <- ts_split(musicians_ts, sample.out=outofsample)
+musicians_ts_split$train #training set
+musicians_ts_split$test  #test set
 ```
-Splitting training/test set to 80 20 ratio
+
+**VAR Model**
 
 ```{r}
-outofsample= 292
-singers_ts_split <- ts_split(singers_ts, sample.out=outofsample)
+### VAR ###
+musicians_ts_split$train |> VARselect() # start from p=1
+VAR(musicians_ts_split$train, p = 1) |> serial.test() # p =1 fails
+VAR(musicians_ts_split$train, p = 1) |> serial.test() # p =2 fails
+VAR(musicians_ts_split$train, p = 3) |> serial.test() #pass, insufficient observations of 1107, parameters = (1+7*3)*7 =154, might have overfitting
+var_p3 <- VAR(musicians_ts_split$train, p = 3)  
 
+forecast::forecast(var_p3) #predict for 30 days 
+forecast_var_p3 <- forecast::forecast(VAR(musicians_ts_split$train, p = 3), h = outofsample)
+
+# accuracy values
+accuracy(forecast_var_p3$forecast$Taylor.Swift$mean, musicians_ts_split$test[,1])
+accuracy(forecast_var_p3$forecast$Justin.Bieber$mean, musicians_ts_split$test[,2])
+accuracy(forecast_var_p3$forecast$Selena.Gomez$mean, musicians_ts_split$test[,3])
+accuracy(forecast_var_p3$forecast$Rihanna$mean, musicians_ts_split$test[,4])
+accuracy(forecast_var_p3$forecast$Billie.Eilish$mean, musicians_ts_split$test[,5])
+accuracy(forecast_var_p3$forecast$Alicia.Keys$mean, musicians_ts_split$test[,6])
+accuracy(forecast_var_p3$forecast$Ed.Sheeran$mean, musicians_ts_split$test[,7])
 ```
 
-ARIMA to forecast taylor swift
+**VECM model**
+
 ```{r}
-arima1 <- auto.arima(singers_ts_split$train[,2], lambda="auto")
-arima_fc <- forecast(arima1, h=outofsample)
-accuracy(x=singers_ts_split$test[,2], arima_fc)
-
+### VECM ###
+musicians_ts |> ca.jo() |> summary() # more than 6? can't use VECM le
+VECM(musicians_ts, lag = 1, r = 6)
 ```
-ARIMA x to forecast taylor swift with Justin bieber as eXogenous
+
+VECM model can't be used because of johanssen test.
+
+**ARIMA, ARIMA-X model**
+
+ARIMA benchmark on all 7 musicians
+
+```{r}
+# ARIMA (taylor swift)
+arima1_taylor <- auto.arima(musicians_ts_split$train[,1], lambda="auto") 
+arima1_fc_taylor <- forecast::forecast(arima1_taylor, h=outofsample)
+accuracy(x=musicians_ts_split$test[,1], arima1_fc_taylor)
+
+# ARIMA (justin bieber)
+arima1_justin <- auto.arima(musicians_ts_split$train[,2], lambda="auto") 
+arima1_fc_justin <- forecast::forecast(arima1_justin, h=outofsample)
+accuracy(x=musicians_ts_split$test[,2], arima1_fc_justin)
+
+# ARIMA (Selena Gomez)
+arima1_selena <- auto.arima(musicians_ts_split$train[,3], lambda="auto") 
+arima1_fc_selena <- forecast::forecast(arima1_selena, h=outofsample)
+accuracy(x=musicians_ts_split$test[,3], arima1_fc_selena)
+
+# ARIMA (Rihanna)
+arima1_rih <- auto.arima(musicians_ts_split$train[,4], lambda="auto") 
+arima1_fc_rih <- forecast::forecast(arima1_rih, h=outofsample)
+accuracy(x=musicians_ts_split$test[,4], arima1_fc_rih)
+
+# ARIMA (Billie Eilish)
+arima1_billie <- auto.arima(musicians_ts_split$train[,5], lambda="auto") 
+arima1_fc_billie <- forecast::forecast(arima1_billie, h=outofsample)
+accuracy(x=musicians_ts_split$test[,5], arima1_fc_billie)
+
+# ARIMA (Alicia Keys)
+arima1_alicia <- auto.arima(musicians_ts_split$train[,6], lambda="auto") 
+arima1_fc_alicia <- forecast::forecast(arima1_alicia, h=outofsample)
+accuracy(x=musicians_ts_split$test[,6], arima1_fc_alicia)
+
+# Ed Sheeran
+arima1_sheeran <- auto.arima(musicians_ts_split$train[,7], lambda="auto") 
+arima1_fc_sheeran <- forecast::forecast(arima1_sheeran, h=outofsample)
+accuracy(x=musicians_ts_split$test[,7], arima1_fc_sheeran)
+```
+
+RSME = 19430.59, MAPE =23.19888
+
+Possible ARIMA-X model: forecast taylor swift with Justin bieber as eXogenous
+
 ```{r}
 # taylor swift
 # Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
-xreg=singers_ts_split$train[,3] # Justin Bieber
+xreg_musicians =musicians_ts_split$train[,2] # Justin Bieber
 
 # Build ARIMA x and test model accuracy
-arimax1 <- auto.arima(singers_ts_split$train[,2], lambda="auto", xreg=xreg)
-arimax1_fc <- forecast(arimax1, h=outofsample, xreg=xreg)
-accuracy(x=singers_ts_split$test[,2], arimax1_fc)
+arimax1 <- auto.arima(musicians_ts_split$train[,1], lambda="auto", xreg=xreg_musicians)
+arimax1_fc <- forecast::forecast(arimax1, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,1], arimax1_fc)
 ```
 
-ARIMA x to forecast taylor swift with Justin bieber, Selena Gomez, Rihanna as eXogenous
+RSME = 23797.5, MAPE = 32.87354
+
+Possible ARIMA-X model: ARIMA x to forecast taylor swift with Justin bieber, Selena Gomez, Rihanna as eXogenous
+
 ```{r}
 # taylor swift
 # Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
-xreg=singers_ts_split$train[,3:5] # Justin Bieber, Selena Gomez, Rihanna
+xreg_musicians =musicians_ts_split$train[,2:7] # Justin Bieber, Selena Gomez, ..., Ed Sheeran
 
 # Build ARIMA x and test model accuracy
-arimax2 <- auto.arima(singers_ts_split$train[,2], lambda="auto", xreg=xreg)
-arimax2_fc <- forecast(arimax2, h=outofsample, xreg=xreg)
-accuracy(x=singers_ts_split$test[,2], arimax2_fc)
+arimax2 <- auto.arima(musicians_ts_split$train[,1], lambda="auto", xreg=xreg_musicians)
+arimax2_fc <- forecast::forecast(arimax2, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,1], arimax2_fc)
+
+# justin bieber
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg_musicians =musicians_ts_split$train[,c(1,3:7)] # Taylor Swift,..., Ed Sheeran
+
+# Build ARIMA x and test model accuracy
+arimax2 <- auto.arima(musicians_ts_split$train[,2], lambda="auto", xreg=xreg_musicians)
+arimax2_fc <- forecast::forecast(arimax2, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,2], arimax2_fc)
+
+# Selena Gomez
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg_musicians =musicians_ts_split$train[,c(1:2,4:7)] # Taylor Swift,..., Ed Sheeran
+
+# Build ARIMA x and test model accuracy
+arimax2 <- auto.arima(musicians_ts_split$train[,3], lambda="auto", xreg=xreg_musicians)
+arimax2_fc <- forecast::forecast(arimax2, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,3], arimax2_fc)
+
+# Rihanna
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg_musicians =musicians_ts_split$train[,c(1:3,5:7)] # Taylor Swift,..., Ed Sheeran
+
+# Build ARIMA x and test model accuracy
+arimax2 <- auto.arima(musicians_ts_split$train[,4], lambda="auto", xreg=xreg_musicians)
+arimax2_fc <- forecast::forecast(arimax2, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,4], arimax2_fc)
+
+# Billie Eilish 
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg_musicians =musicians_ts_split$train[,c(1:4,6:7)] # Taylor Swift,..., Ed Sheeran
+
+# Build ARIMA x and test model accuracy
+arimax2 <- auto.arima(musicians_ts_split$train[,5], lambda="auto", xreg=xreg_musicians)
+arimax2_fc <- forecast::forecast(arimax2, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,5], arimax2_fc)
+
+# Alicia Keys 
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg_musicians =musicians_ts_split$train[,c(1:5,7)] # Taylor Swift,..., Ed Sheeran
+
+# Build ARIMA x and test model accuracy
+arimax2 <- auto.arima(musicians_ts_split$train[,6], lambda="auto", xreg=xreg_musicians)
+arimax2_fc <- forecast::forecast(arimax2, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,6], arimax2_fc)
+
+# Ed Sheeran 
+# Parameterising xreg so that xreg can be editted to include as many exogenous actors as needed
+xreg_musicians =musicians_ts_split$train[,c(1:6)] # Taylor Swift,..., Ed Sheeran
+
+# Build ARIMA x and test model accuracy
+arimax2 <- auto.arima(musicians_ts_split$train[,7], lambda="auto", xreg=xreg_musicians)
+arimax2_fc <- forecast::forecast(arimax2, h=outofsample, xreg=xreg_musicians)
+accuracy(x=musicians_ts_split$test[,7], arimax2_fc)
 ```
+
+Our out of sample RSME and MAPE reflects that we should choose ARIMA-X models to forecast these various singers. However, the number of exogenous variables can vary dependent on the out of sample accuracy, where we choose the lowest RSME/ MAPE. Although the VAR model might give us a lower out of sample accuracy, we might be prone to overfitting due to insufficient observations. Furthermore, singers might affect different singers, for eg, if there is an album release, then they might have more listeners etc.
