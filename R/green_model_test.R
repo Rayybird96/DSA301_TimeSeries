@@ -7,4 +7,8 @@
 library(tidyverse)
 library(fpp2)
 library(urca)
+
 # Load data
+green_df <- read_csv("C:/Users/rayne/Documents/GitHub/DSA301_TimeSeries/Data/green_data_pc_new.csv")|>
+
+green_ts <- ts(green_df[,3:5], start=)
