@@ -21,7 +21,7 @@ We will be building a green model (green variables) and a yellow model (yellow +
 
 We will be using basic *autoregressive intergrated moving average (ARIMA)* for both models, to act as a benchmark against more complex models.
 The green variables interact with one another, hence can be modelled with *vectorised auto regression (VAR)* and *vector error correction model (VECM)*.
-The yellow variables are independant, hence the yellow model can be modelled by *VAR-X, VECM-X and ARIMA-x*.
+The yellow variables are independant, hence the yellow model can be modelled by *VAR-X, VECM-X and ARIMA-X*.
 
 # R Documentation
 ts_proj is the main project file, ts_hw are my homework files, and time_series_learnings contains my learnings up till week 6.
