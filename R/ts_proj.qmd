@@ -262,7 +262,7 @@ The blue model is an extension of the green model, thus uses the exact same time
 ## 2.1 VAR-X
 VAR-X with VAR components being sea,temp and eXogenous CO2
 ```{r}
-outofsample=12
+outofsample=10
 green_model_ts_split <- ts_split(green_model_ts, sample.out=outofsample)
 # global_temperature and sea_level in VAR, carbon_emssions_per_capita as eXogenous
 blue_var1 <- vars::VAR(green_model_ts_split$train[,2:3], p=1, type="const", exogen = green_model_ts_split$train[,1])
