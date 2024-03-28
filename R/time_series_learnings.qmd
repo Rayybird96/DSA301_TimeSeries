@@ -7,8 +7,7 @@ editor: visual
 
 # time_series_01
 
-This file documents my learning process with SMU module DSA301 Time Series Data Analytics. It only covers up to ARIMA as I ran out of time to maintain these codes due to high workload after wk 6. :( 
-
+This file documents my learning process with SMU module DSA301 Time Series Data Analytics. It only covers up to ARIMA as I ran out of time to maintain these codes due to high workload after wk 6. :(
 
 # Load required packages
 
@@ -506,8 +505,5 @@ An MA(1) process is invertible to a AR(infinity) process, and an AR(infinity) pr
 One last note, if ACF decays slowly instead of exponentially, then it means that series is not stationary and differencing is necessary.
 
 ## 8.3 ARIMA models
+
 Pls refer to slides from this point onwards...
-
-
-
-
