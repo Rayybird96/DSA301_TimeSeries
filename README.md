@@ -23,7 +23,7 @@ We will be using basic *autoregressive intergrated moving average (ARIMA)* for b
 The green variables interact with one another, hence can be modelled with *vectorised auto regression (VAR)* and *vector error correction model (VECM)*.
 The yellow variables are independant, hence the yellow model can be modelled by *VAR-X, VECM-X and ARIMA-X*.
 
-Disclaimer: I wanna acknowledge that our *VAR* and *VECM* (extension of VAR) was not entirely applied correctly as we did not diff the series beforehand, and applied it on non-stationary data. Recall that series has to be stationary - constant mean, constant variance, before modelling on to ensure that estimated parameters will be constant over time! :(
+Disclaimer: I wanna acknowledge that our *VAR* and *VECM* (extension of VAR) was not entirely applied correctly as we did not diff the series beforehand, and applied it on non-stationary data. Recall that series has to be covariance stationary - constant mean, constant variance, before modelling on to ensure that estimated parameters will be constant over time! :(
 
 # R Documentation
 ts_proj is the main project file, ts_hw are my homework files, and time_series_learnings contains my learnings up till week 6.
