@@ -25,7 +25,7 @@ The yellow variables are independant, hence the yellow model can be modelled by 
 
 Disclaimer: I wanna acknowledge that our *VAR* and *VECM* (extension of VAR) was not entirely applied correctly as we did not diff the series beforehand, and applied it on non-stationary data. Recall that series has to be covariance stationary - constant mean, constant variance, before modelling on to ensure that estimated parameters will be constant over time! :(
 
-However, further limitations of VAR & VECM such as ease of overfitting and cointegration/granger casuality tests have been accounted for. :)
+However, further limitations of *VAR & VECM* such as ease of overfitting (as coefficients scale very quickly!) and cointegration/granger casuality tests have all been accounted for. :)
 
 # R Documentation
 ts_proj is the main project file, ts_hw are my homework files, and time_series_learnings contains my learnings up till week 6.
