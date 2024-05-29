@@ -1,0 +1,256 @@
+---
+title: "DSA301FinalExam_April2024"
+author: "Benjamin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## SECTION A:  IMPLEMENTATION QUESTIONS ##
+
+## Question A1 (Warmup)  (1 point)
+Fill in the code chunk for QUESTION 1 below to plot the classical time series decomposition of variable "elec" in fpp2.  The line "autoplot(elec) is inserted as an example of how to generate plots in this environment.  Feel free to delete it and/or replace with the correct answer.
+
+```{r QUESTIONA1, echo = FALSE}
+library(fpp2)
+autoplot(elec)
+autoplot(decompose(elec))
+
+```
+
+## Question A2 (Benchmark Models)  (2 points)
+Fill in the code chunk for QUESTION 2 below to forecast the seasonal component of "elec" with the snaive method for 20 periods into the future.  Feel free to delete/ replace any lines of code in the provided template which are not needed
+
+```{r QUESTIONA2, echo = FALSE}
+library(fpp2)
+
+se <- seasonal(decompose(elec))
+snaive(se, h =20)
+```
+
+## Question A3 (Model evaluation)  (5 points)
+Fill in the code chunk for QUESTION 3 below to automatically build an arima model on the seasonally adjusted component of elec.  You may use built-in functions for automated order detection here.  Leave a reasonable out of sample period, and compute accuracy statistics (e.g. RMSE, MAPE) of your model on the out of sample period.  You do not need to preprocess the data for this question.   Feel free to delete/ replace any lines of code in the provided template which are not needed
+
+```{r QUESTIONA3, echo = FALSE}
+library(fpp2)
+library(TSstudio)
+#length of elec is 476. taking 80-20 train test split, 381 in sample, 95 out of sample
+outofsample = 95
+elec_split <- ts_split(elec, sample.out = outofsample)
+se <- seasadj(decompose(elec_split$train))
+arima <- auto.arima(se, lambda="auto")
+checkresiduals(arima)
+accuracy(x=elec_split$test, forecast(arima, h=outofsample))
+
+# out-of-sample RMSE is 746.9438 and MAPE is 4.503117, MAE is 591.66705
+```
+
+## Question A4 (Preprocessing)  (2 point)
+Fill in the code chunk for QUESTION 4 below to correct for variance in elec due to mechanical differences in the number of days each month.  Delete sample code lines which are not required.
+```{r QUESTIONA4, echo = FALSE}
+library(fpp2)
+elec/monthdays(elec)
+
+
+```
+
+## Question A5 (Arima modelling "by hand") (12 points)
+Fill in the code chunk below to:
+a.  Plot ACF and PACF of AirPassengers.  For this question, disregard time series decomposition
+b.  Form reasonable hypothesis on what ARIMA orders the variable should take.  Remember to check ndiffs and nsdiffs
+c.  Test the hypotheses so formed from above, and select the best one based on the appropriate model selection criteria.  Keep an out of sample for this step
+d.  Evaluate the performance of your model out of sample.
+e.  What else do we need to do to ensure that the model has sufficiently exploited all time series information?
+
+```{r QUESTIONA5, echo = FALSE}
+library(fpp2)
+tsdisplay(AirPassengers)
+acf(AirPassengers)
+pacf(AirPassengers)
+
+nsdiffs(AirPassengers) # 1 seasonal diff is needed
+air <- diff(AirPassengers, 12)
+nsdiffs(air)
+ndiffs(air) # 1 diff is needed
+air <- diff(air)
+#autoplot(air) looks stationary
+library(urca)
+summary(ur.kpss(air)) #test stat lies within crit value - stationary
+tsdisplay(air)
+
+# ACF shows sharp spike and decrease at lag 1 : MA 1
+# PACF shows sharp spike at lag 1: AR 1
+# I hypothesise a ARIMA(1,1,1)(0,1,0) model
+
+# length of airpassengers is 144, splitting 70-30 split we have:
+outofsample = 43
+air_split <- ts_split(AirPassengers, sample.out = outofsample)
+arima <- Arima(air_split$train, order=c(1,1,1), seasonal = c(0,1,0))
+checkresiduals(arima) # 0.20 >0.05, there is no time series info present
+accuracy(x = air_split$test, forecast(arima, h=outofsample))
+# the out of sample RMSE is 25.040239, MAE is 20.430268, MAPE is 4.870793
+
+# e. to ensure that model has exploited all time series info, we need to ensure that there are no time series autocorrelation present in residuals using ljung box test aka checkresiduals().
+```
+
+##Question A6 (Free form modelling) (18 points)
+Extend the code chunk below to build the best possible model of SPY (S&P 500) prices that you can.  You can edit the code to open data for other equities instruments if you like, from the set that was downloaded
+There is (deliberately) less structure to this question, please exercise independent judgement.  There is also no single correct answer, although responses will be graded exclusively on how consistent the approach is to 'best practice' and how complete the exploration is.
+NOTE:  make sure 'SPY.csv', which you downloaded from eLearn is in the same folder.  Otherwise just put the fully qualified path to the file, with ("//") separating directories.  
+```{r QUESTIONA6, echo = FALSE}
+library(fpp2)
+df2 <- read.csv("SPY.csv")
+spyts<-ts(data=df2['Adj.Close'], start=c(2002,1), end=c(2023,3), deltat = 1/12)
+autoplot(spyts)
+# clearly the spyts is not stationary
+nsdiffs(spyts) # 0
+ndiffs(spyts) # 1
+
+diff(spyts) |>
+  autoplot()
+# does not look stationary, variance appears to increase over time. But visually isn't accurate, using statistical tests are better, hence:
+summary(ur.kpss(diff(spyts)))
+# series is stationary, as test statistic 0.4005 lies within the 5pct critical value of 0.463. We accept the null that series is stationary. Update the spyts series to be 1st differenced:
+
+BoxCox(spyts, BoxCox.lambda(diff(spyts))) |>
+  autoplot()
+
+# Here, I attempt to Boxcox to see if variance is improved but there is little difference.
+
+# So far, these are merely the preprocessing steps. Now I will do modelling:
+
+# the length of spyts is 254, splitting a 70-30 split:
+outofsample=76
+spy_split <- ts_split(spyts, sample.out=outofsample)
+
+# Firstly, auto arima
+arima1 <- auto.arima(spy_split$train, lambda="auto")
+checkresiduals(arima1) #0.2178>0.05 there is no time series info present
+accuracy(x = spy_split$test, forecast(arima1, h=outofsample))
+
+#outofsample RMSE: 109.517187, MAPE:25.429212
+
+# then, i try stlf forecasting. This will run snaive on seasonal component, and exponential smoothing (default) or other methods I want on seasadj component, and add up the results. Also, this uses a mstl decomposition, splitting based on multiple seasonalites, which is better than classical decomp as it is more robust to outliers, among other reasons.
+
+accuracy(x = spy_split$test, stlf(spy_split$train, lambda="auto", h=outofsample)) # this is stlf exponential smoothing test RMSE: 137.434311, test MAPE:32.515525
+accuracy(x = spy_split$test, stlf(spy_split$train, method="arima", lambda="auto", h=outofsample)) # this is stlf Boxcoxed auto arima, test rmse: 111.209726, test mape: 26.07372
+arima2 <- stlf(spy_split$train, method="arima", lambda="auto", h=outofsample)
+# As usual, it is mandatory to ljung box test our stlf arima model.
+checkresiduals(arima2$residuals) # pvalue of 0.03154 means we cannot accept this arima model, it contains time series info.
+
+# best univariate model is hence arima1
+
+
+# Loading in other data sets
+# multivariate modelling (VAR, ARIMA-X or VECM)
+df3 <- read.csv("XLF.csv")
+xlfts <- ts(data=df3['Adj.Close'], start=c(2002,1), end=c(2023,3), deltat = 1/12)
+
+df4 <- read.csv("QQQ.csv")
+qqqts <- ts(data=df4['Adj.Close'], start=c(2002,1), end=c(2023,3), deltat = 1/12)
+
+library(tidyverse)
+df3 <- df3 |>
+  dplyr::select(Date,Adj.Close) |>
+  rename(xlf_adj_close=Adj.Close)
+
+df4 <- df4|>
+  dplyr::select(Date,Adj.Close) |>
+  rename(qqq_adj_close=Adj.Close)
+
+df2 <- df2 |>
+  dplyr::select(Date, Adj.Close)
+
+df5 <- full_join(df2, df3) |>
+  full_join(df4)
+
+spyts2 <- ts(data=df5[2:4], start=c(2002,1), end=c(2023,3), deltat = 1/12)
+
+outofsample=76
+spy2_split <- ts_split(spyts2, sample.out=outofsample)
+
+# Let me see if there are cointegration so that I can consider VECM. Else, I would stick to VAR or ARIMA-x
+summary(ca.jo(spy2_split$train)) # the minimum r which we fail to reject the null is 2. Therefore there are 2 cointegration relationships. Telling me that a VECM with r=2 should be used.
+
+# Now I run VARselect to determine the orders behind VECM (and for that case, VAR)
+library(vars)
+VARselect(spy2_split$train)
+# Looking at the SC(BIC) value as required for a VAR process, we see that order of 1 is needed.
+library(tsDyn)
+vecmmodel = VECM(spy2_split$train, lag = 1, r = 2, estim = "ML")
+vecm_fc <- predict(vecmmodel, n.ahead = outofsample)
+accuracy(x=spy2_split$test[,1], vecm_fc[,1])
+
+# out of sample RMSE of 98.27504, MAPE of 21.69732
+
+# But i still want to try VAR, just to explore and compare results to VECM
+# recall that VARselect told us that 1 order of lag is needed
+var1 = VAR(spy2_split$train[,1:3], p = 1, type="const") #VAR model
+serial.test(var1, lags.pt=10, type="PT.asymptotic") # serial test says p value 0.01081, we reject this and add more lags, to try and get a VAR model with no time series info left in residuals (we have to accept the null)
+
+var2 = VAR(spy2_split$train[,1:3], p = 2, type="const") #VAR model
+serial.test(var2, lags.pt=10, type="PT.asymptotic") # p-value 0.007, reject
+
+var3 = VAR(spy2_split$train[,1:3], p = 2, type="const") #VAR model
+serial.test(var3, lags.pt=10, type="PT.asymptotic") # p-value 0.0214, reject
+
+# I shall stop the VAR process here, there are no optimal VAR at least in order 1,2 and 3 that can be used. Hence, I ascertain that VECM is a superior model for this case.
+
+
+```
+
+##  SECTION B:  Mathematical Questions ###
+Question B1 (5 points):  What is the unconditional mean of an AR process Y(t) = 10 + 1.1Y(t-1) + e(t)?
+unconditional mean = c/(1-phi) which is 10/(1-1.1), here, the coefficient phi is more than 1, hence the unconditional mean is indefinite and the series explodes. Phi has to be between 0 and 1 for there to be an unconditional mean.
+Question B2 (5 points):  What is the unconditional mean of an MA process Y(t) = 10 + 20e(t-1) + 50e(t-2) - 100e(t-3) + e(t)?
+The unconditional mean of an MA process is 0. 
+Question B3 (5 points):  In an ARIMA-X model, residuals from the first stage regression are stationary [True or False]?  Residuals from the second stage modelling are stationary [True or False]?
+False, regression errors are serially correlated, they could exhibit non-stationarity. True, innovation errors are white noise, they are stationary (zero mean, constant variance). 
+
+## Section C:  Short answer questions ##
+Question C1 (13 points):  When would you use a Vector Auto Regression (VAR) model over ARIMA-X, and vice versa?  Discuss the similarities, differences, pros and cons of each approach
+I would use a VAR over ARIMA-x when the forecasts are long into the future. VAR is more accurate in long-term forecasting with extensive data, while ARIMA-x is more accurate in short term forecasting with less data. The reason being VAR is more prone to overfitting, having coefficients that scale quickly (k + pk^2). Recall that each coefficient needs 10 observations, hence VAR is only useful if we have a lot of data, perhaps in quarterly or monthly as opposed to annual data. ARIMA-x is less prone to overfitting, while ARIMA-x is more accurate short term as the exogenous variables also need to be forecasted. In the long-term, forecasting 2 things at once (exogenous and dependant variable of interest) will definitely lead to poor results. 
+
+
+Similarities:
+Both methods are considered multivariate forecasting, which means we are forecasting multiple things at once. Both methods involve other independant variables in forecasting, as opposed to just unvariate modelling (ARIMA/Exponential smoothing/ etc...) framework of using past values/long-term level of the same dependant variable in forecasting processes. Hence, there are patterns and relationships that ARIMA-x and VAR are able to capture and account for in model processes that a usual ARIMA would not, thus justifying why we should use these methods.
+
+Differences:
+VAR and ARIMA-x differs in terms of how the series of the dependant variable we are interested in relates to the other independent time series used to forecast the dependant series.
+
+I would use a VAR when variables are interacting with one another, interaction variables, in a bi-directional manner. An example using simple macroeconomics is consumption and income. Higher consumption leads to higher income, higher income leads to higher consumption. In this case, recalling the equation behind VAR, the lagged values of both income and consumption would have an effect on future values of both income and consumption. This is a result of the bi-directional relationship, which justifies the use of a VAR.
+
+On the other hand, ARIMA-x is used when there are independant variables that affect the dependant variable (the one we are interested in), in a one directional relationship. An example would be climate change, studies have demonstrated that c02 emissions affect temperature, but temperature does not affect c02. In this case, C02 will be exogenous variable used to forecast temperature.
+
+Another difference is that VAR forecasts multiple things at once, while ARIMA-x we forecast the exogenous variable first. Then, we use this forecasted exogenous variable values (for example in the "exog" flag of the forecast/arima function) to predict future values for our dependant variable of interest.
+
+The pro of both models is that using other variables to forecast or explain the dependant variable of interests gives a more solidified and well-rounded statistical approach as opposed to univariate modelling using past values of dependant variable only. This is beacause it considers other factors and captures statistical relationships or patterns that might affect the dependant variable, and is more insightful than simply using old values or long term trend of just the dependant variables in forecasting.
+
+The pros of VAR is that it provides stong long-term forecasts. The con is that it is prone to overfitting and cannot be used when data is limited, and that we have to ensure variables are granger causing one another. Also, we have to ensure that they past the serial.test(). If fails, add more lags until it ideally passes.
+
+The pro of ARIMA-x is that it provides strong short-term forecasts. Additionally, it is less prone to overfitting. The con is that long-term forecasts are weaker. Adding on to this point, we need highly accurate forecasts of exogenous variables in the future. If these exogenous variables are forecasted poorly, then using it to forecast our dependant variable of interest will definitely lead to more inaccurate results.
+
+Question C2 (4 points):  What are the 2 qualitative features of the GARCH model in volatility forecasting that result in more realistic forecasts?
+1. Mean reverting property of volitality. 2. Volitality clustering
+
+Question C3 (5 points):  Discuss the use of ex-ante and ex-post forecasts in "debugging" the source of inaccuracies in ARIMA-X based forecasts
+ex-ante forecasts refer to forecasts using observations we have already observed to evaluate model performance, while ex-post forecasts refer to forecasts into the future in which we have no observations of future values to evaluate the effectiveness of our models.
+When it comes to debugging the source of inaccuracies, I believe we use ex-ante forecasts. We do so by checking the out-of-sample performance to see it it is satisfactory (RMSE, MAPE that are decent), and the ljung box test on trained ARIMA-x model to see if there is any time series information still present in the residuals. If there is, build another model, until it passes the Ljung box test. Additionally, we could consider and build multiple ARIMA models, and use the AICc value to help us determine the best model in terms of preventing overfitting. 
+
+Question C4 (4 points):  When should you use multiplicative versus additive time series decomposition?  How do you convert a multiplicative time series to additive?
+We use multiplicative series decomposition when the trend is exponentially increasing, and additive decomposition when trend is increasing at a constant rate. We convert multiplicative time series to additive by applying ln, such that they can be added together as a property of the ln function.
+
+Question C5 (5 points):  What is the difference between covariance stationary and stationary?
+Covariance stationary means that the first and second moments , mean and variance are stationary. Stationary means that all moments, including mean and variance but also including kertosis (not sure how to spell) and skewness are stationary.
+
+Question C6 (4 points):  What do we (usually) need to make a variable stationary before modelling?
+We have to apply nsdiffs and ndiffs. Then apply differencing as needed (check if seasonal differencing is needed first, and perform seasonal differencing. Then check if non-seasonal differencing is needed, then non-seasonal differencing). Then we can either autoplot to visually investigate stationarity, or even better, use statistical tests by using the kpss unit root test, and see if we accept the null (series is stationary). Additionally, we could also, in the pre-processing steps, apply a boxcox transformation, which aims to make variance as constant as possible.
+
+## Section D:  Design questions ##
+Question D1 (10 points):  You have two data series histories, which are cointegrated.  Discuss the following points in any order you wish:  (i) what does cointegration mean?  (ii) what is the 'best' model you can build to predict both prices into the future, and why (iii) how does this model make use of the feature that both price series are cointegrated?
+i. Cointegration means that while both time series are non stationary l(1) etc, the linear combination of them are stationary. Hence, the difference between both series are mean reverting, constant variance and exhibit stationarity.
+ii. The best model to predict both prices in the future is the VECM model, Vector error correction model, which is an extension of the VAR. It adds onto the VAR model, which already contains past lagged values of multiple variables, by adding an ECM term, which will help to make up for deviations away from the long term level.
+iii. The feature that is used by exploiting cointegration is the ECM, whereby there is a mean reverting property of the deviations from long-term difference. I do not have the exact formula of VECM at hand, but I recall that in the RHS and second component (ECM component) of the equation, there is a tuning parameter that will tune the deviations from the expected long-term deviance accordingly. To elaborate, if the difference in prices of 2 cointegrated goods (eg. pepsi and cola), were to increase, then the parameter will decrease, in order to make up for the increase in the difference of prices between pepsi and cola. The key here is that cointegration means that the difference between the 2 prices have to be stationary and there are mean reverting properties, and hence the error correction component will be able to ensure this property.
