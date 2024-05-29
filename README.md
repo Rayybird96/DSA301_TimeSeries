@@ -23,6 +23,12 @@ We will be using basic *autoregressive intergrated moving average (ARIMA)* for b
 The green variables interact with one another, hence can be modelled with *vectorised auto regression (VAR)* and *vector error correction model (VECM)*.
 The yellow variables are independant, hence the yellow model can be modelled by *VAR-X, VECM-X and ARIMA-X*.
 
+Disclaimer on *VAR* and *VECM* methodology: I wanna acknowledge that our *VAR* and *VECM* (extension of *VAR*) was not entirely applied correctly as we did not diff, nor BoxCox transform, the series beforehand, and applied it on non-stationary data. Recall that series has to be covariance stationary - constant mean, constant variance, before modelling on to ensure that estimated parameters will be constant over time! :(
+
+However, further limitations of *VAR & VECM* such as ease of overfitting (as coefficients scale very quickly!) and cointegration/granger casuality tests have all been accounted for :)
+
+Our concluding models are *ARIMA* favoured, due to these models having less of an overfitting problem. Yearly data does not present enough data for *VAR* and *VECM* models, which scales in coefficients very quickly. Moreover, we must consider the train test split and forecast length as well, all of which requires many years of data. This is further pertinent when we consider that, as a Machine Learning rule of thumb, each coefficient should have at least 10 observations (10 years). For the math behind this and more, please refer to the project pdf!
+
 # R Documentation
 ts_proj is the main project file, ts_hw are my homework files, and time_series_learnings contains my learnings up till week 6.
 
