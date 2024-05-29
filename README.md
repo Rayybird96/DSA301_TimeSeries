@@ -31,5 +31,6 @@ Our concluding models are *ARIMA* favoured, due to these models having less of a
 
 # R Documentation
 ts_proj is the main project file, ts_hw are my homework files, and time_series_learnings contains my learnings up till week 6. 
+
 Final updates: I also added my final examination script and pdf files although there is no answer key and I have no idea how well (or badly) I did.
 
