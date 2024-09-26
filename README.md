@@ -32,8 +32,6 @@ However, further limitations of *VAR & VECM* such as ease of overfitting (as coe
 
 Our concluding models are *ARIMA* favoured, due to these models having less of an overfitting problem. Yearly data does not present enough data for *VAR* and *VECM* models, which scales in coefficients very quickly. Moreover, we must consider the train test split and forecast length as well, all of which requires many years of data. This is further pertinent when we consider that, as a Machine Learning rule of thumb, each coefficient should have at least 10 observations (10 years). For the math behind this and more, please refer to the project pdf!
 
-![image](https://github.com/user-attachments/assets/fe374ceb-3ab5-4ae8-bda5-656a9c04ac8e)
-
 # R Documentation
 ts_proj is the main project file, ts_hw are my homework files, and time_series_learnings contains my learnings up till week 6. 
 
