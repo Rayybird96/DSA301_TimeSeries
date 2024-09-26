@@ -4,6 +4,9 @@ This repository contains my __homework, project, and learning process__ for SMU 
 # Project description
 __Climate change, Human-caused or not?__
 
+![image](https://github.com/user-attachments/assets/9c58025b-83a5-4f57-8523-571e28365141)
+
+
 Long-term climate change research has been modelled as an interaction between the following 3 variables: 
 1. Greenhouse gas emissions
 2. Global average temperatures
